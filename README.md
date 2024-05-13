@@ -3,6 +3,43 @@ Distil-DIRE is a lightweight version of DIRE, which can be used for real-time ap
 ![overview](distil.png)
 
 
+## Data Preparation
+Before training the model on your own dataset, you need to prepare the dataset in the following format:
+```bash
+mydataset/train|val|test
+└── images
+    ├── fakes
+    │   └──img1.png...
+    ├── reals
+        └──rimg1.png...
+```
+
+After preparing the dataset, you can calculate the epsilons and dire images for the dataset using the following script:
+```bash
+bash compute_dire_eps.sh
+```
+
+After running the script, you will have the following directory structure:
+```bash
+mydataset/train|val|test
+└── images
+    ├── fakes
+    │   └──img1.png...
+    ├── reals
+        └──rimg1.png...
+└── eps
+    ├── fakes
+    │   └──img1.pt...
+    ├── reals
+        └──rimg1.pt...
+└── dire
+    ├── fakes
+    │   └──img1.png...
+    ├── reals
+        └──rimg1.png...
+``` 
+Note that we currently provide single-gpu preprocessing script. But you can modify the script to run on multiple gpus. For eps and dire calculation we set the DDIM steps to 20. This should be same when inference.
+
 ### Train
 For training Distil-DIRE, we only provide single gpu training script. 
 ```

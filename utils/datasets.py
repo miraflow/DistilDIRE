@@ -19,7 +19,7 @@ from torch.utils.data.sampler import WeightedRandomSampler
 
 from torch.utils.data.distributed import DistributedSampler
 
-from guided_diffusion.compute_dire import dire, create_argparser, dire_get_first_step_noise
+from guided_diffusion.compute_dire_eps import dire, create_argparser, dire_get_first_step_noise
 
 from utils.config import CONFIGCLASS
 

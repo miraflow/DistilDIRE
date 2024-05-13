@@ -15,6 +15,7 @@ scikit-learn
 tensorboard
 tensorboardX
 sanic
+wandb
 tqdm
 blobfile>=1.0.5
 easydict

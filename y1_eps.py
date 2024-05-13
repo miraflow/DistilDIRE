@@ -11,11 +11,10 @@ import torch.multiprocessing as mp
 
 import PIL.Image as Image
 
-from tensorboardX import SummaryWriter
 from tqdm import tqdm
 import gc
 
-from guided_diffusion.compute_dire import  create_argparser,dire_get_first_step_noise
+from guided_diffusion.compute_dire_eps import  create_argparser,dire_get_first_step_noise
 from guided_diffusion.guided_diffusion.script_util import create_model_and_diffusion, model_and_diffusion_defaults, dict_parse
 
 from utils.datasets import get_binary_distill_dataloader
@@ -59,7 +58,7 @@ def main():
     device = torch.device("cuda")
 
     adm_args = create_argparser()
-    adm_args['timestep_respacing'] = 'ddim15'
+    adm_args['timestep_respacing'] = 'ddim20'
     adm_model, diffusion = create_model_and_diffusion(**dict_parse(adm_args, model_and_diffusion_defaults().keys()))
     adm_model.load_state_dict(torch.load(adm_args['model_path'], map_location="cpu"))
     adm_model.to(device)

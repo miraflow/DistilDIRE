@@ -6,7 +6,7 @@ import torch
 import torch.nn
 import torchvision.transforms as transforms
 import torchvision.transforms.functional as TF
-from guided_diffusion.compute_dire import dire
+from guided_diffusion.compute_dire_eps import dire
 import torchvision.transforms as transforms
 from torchvision.utils import save_image
 from custommodel import CustomModel

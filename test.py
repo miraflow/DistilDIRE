@@ -12,7 +12,7 @@ from tqdm import tqdm
 import wandb
 import gc
 from utils.utils import get_network
-from guided_diffusion.compute_dire import dire, create_argparser
+from guided_diffusion.compute_dire_eps import dire, create_argparser
 from guided_diffusion.guided_diffusion.script_util import create_model_and_diffusion, model_and_diffusion_defaults, dict_parse
 
 from utils.config import cfg
