@@ -1,0 +1,41 @@
+FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04 as builder
+
+RUN apt-get update && apt-get install -y \
+    python3-pip \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    ffmpeg tmux git curl wget gcc build-essential \
+    && rm -rf /var/lib/apt/lists/* 
+
+# install conda
+RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-4.5.12-Linux-x86_64.sh -O ~/miniconda.sh && \
+     /bin/bash ~/miniconda.sh -b -p /opt/conda
+# create env with python 3.9
+RUN /opt/conda/bin/conda create -y -n yewon_dire python=3.9
+
+ENV PATH=/opt/conda/envs/yewon_dire/bin:$PATH    
+
+RUN pip install --no-cache-dir --upgrade pip
+RUN pip install torch==2.0.0+cu117 torchvision==0.15.1+cu117 -f https://download.pytorch.org/whl/torch_stable.html
+WORKDIR /app
+
+ADD requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04 as runner 
+COPY --from=builder /opt/conda/envs/yewon_dire/bin /opt/conda/envs/yewon_dire/bin
+COPY --from=builder /opt/conda/envs/yewon_dire/lib /opt/conda/envs/yewon_dire/lib
+ENV PATH=/opt/conda/envs/yewon_dire/bin:$PATH
+
+WORKDIR /app    
+ADD networks/ /app/networks
+ADD utils/ /app/utils
+ADD server.py /app/server.py
+ADD celebahq_sdv2.pth /app/celebahq_sdv2.pth
+ADD custommodel.py /app/custommodel.py
+
+
+ARG SERVING_PORT=8000
+ENV SERVING_PORT=$SERVING_PORT
+CMD python -u -m server
+

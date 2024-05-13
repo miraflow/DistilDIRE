@@ -1,0 +1,20 @@
+# conda create -n dire python=3.9
+# pip install torch==2.0.0+cu117 torchvision==0.15.1+cu117 -f https://download.pytorch.org/whl/torch_stable.html
+einops
+imageio
+ipympl
+cmake==3.28.3
+dlib==19.24.2
+face_recognition
+matplotlib
+numpy
+opencv-python
+pandas
+decord
+scikit-learn
+tensorboard
+tensorboardX
+sanic
+tqdm
+blobfile>=1.0.5
+easydict

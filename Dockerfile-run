@@ -1,0 +1,38 @@
+FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04 
+
+RUN apt-get update && apt-get install -y \
+    python3-pip \
+    libgl1-mesa-glx \
+    libglib2.0-0 python3-dev libglib2.0-0 libgl1-mesa-glx \
+    cmake tmux git curl wget gcc build-essential \
+    && rm -rf /var/lib/apt/lists/* 
+
+RUN pip install --no-cache-dir --upgrade pip
+RUN pip install torch==2.0.0+cu117 torchvision==0.15.1+cu117 -f https://download.pytorch.org/whl/torch_stable.html
+WORKDIR /app
+
+ADD requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+ADD guided_diffusion/ /app/guided_diffusion
+ADD networks/ /app/networks
+ADD utils/ /app/utils
+ADD server.py /app/server.py
+ADD distill_model.py /app/distill_model.py
+# ADD checkpoints/celebahq/model_epoch_4.pth /app/checkpoints/celebahq/model_epoch_4.pth
+# ADD checkpoints/model_epoch_50.pth /app/checkpoints/model_epoch_50.pth
+ADD checkpoints/y1distil-truemedia-240408-e19.pth /app/checkpoints/y1distil-truemedia-240408-e19.pth
+
+ADD 256x256-adm.pt /app/256x256-adm.pt
+# ADD checkpoints/imagenet/model_epoch_10.pth /app/checkpoints/imagenet/model_epoch_10.pth
+ADD custommodel.py /app/custommodel.py
+ADD celebahq_sdv2.pth /app/celebahq_sdv2.pth
+ADD imagenet_adm.pth /app/imagenet_adm.pth
+
+
+ARG SERVING_PORT=8000
+ENV SERVING_PORT=$SERVING_PORT
+EXPOSE $SERVING_PORT
+
+CMD python3 -u -m server
+
