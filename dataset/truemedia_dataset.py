@@ -24,8 +24,8 @@ class TMDistilDireDataset(Dataset):
             self.fake_paths = list(map(lambda x: (x, x.replace('/images/', '/dire/'), x.replace('/images/', '/eps/').split('.')[0]+'.pt', True), self.__fake_img_paths))
             self.real_paths = list(map(lambda x: (x, x.replace('/images/', '/dire/'), x.replace('/images/', '/eps/').split('.')[0]+'.pt', False), self.__real_img_paths))
         else:
-            self.fake_paths = list(map(lambda x: (x, "", ""), self.__fake_img_paths))
-            self.real_paths = list(map(lambda x: (x, "", ""), self.__real_img_paths))
+            self.fake_paths = list(map(lambda x: (x, "", "", True), self.__fake_img_paths))
+            self.real_paths = list(map(lambda x: (x, "", "", False), self.__real_img_paths))
         self.img_paths = self.fake_paths + self.real_paths
         
     def __len__(self):

@@ -10,7 +10,6 @@ matplotlib
 numpy
 opencv-python
 pandas
-decord
 scikit-learn
 tensorboard
 tensorboardX

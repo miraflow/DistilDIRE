@@ -72,10 +72,14 @@ def create_argparser():
        compute_dire=False,
        compute_eps=False,
        save_root="",
+       batch_size=32,
     )
     defaults.update(sanic_dict)
-    
-    return defaults
+    parser = argparse.ArgumentParser()
+    add_dict_to_argparser(parser, defaults)
+    args = parser.parse_args()
+
+    return args_to_dict(args, list(defaults.keys()))
 
 
 @torch.no_grad()
@@ -139,7 +143,7 @@ def dire_get_first_step_noise(img_batch:torch.Tensor, model, diffusion, args, de
         model,
         # (batch_size, 3, args['image_size'], args['image_size']),
         x=imgs,
-        t=torch.zeros(imgs.shape[0],).int().to(device),
+        t=torch.zeros(imgs.shape[0],).long().to(device),
         clip_denoised=args['clip_denoised'],
         model_kwargs=model_kwargs,
         eta=0.0
@@ -151,7 +155,7 @@ def dire_get_first_step_noise(img_batch:torch.Tensor, model, diffusion, args, de
 
 if __name__ == "__main__":
     # Set device for this process
-    device = torch.device("cuda")
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
     adm_args = create_argparser()
     adm_args['timestep_respacing'] = 'ddim20'
@@ -171,7 +175,7 @@ if __name__ == "__main__":
     os.makedirs(osp.join(adm_args['save_root'], 'eps', 'fakes'), exist_ok=True)
     os.makedirs(osp.join(adm_args['save_root'], 'eps', 'reals'), exist_ok=True)
 
-    dataloader = DataLoader(dataset, batch_size=32,shuffle=False, num_workers=2, drop_last=False,)
+    dataloader = DataLoader(dataset, batch_size=adm_args['batch_size'], shuffle=False, num_workers=2, drop_last=False,)
     transform = transforms.Compose([transforms.Resize(224), transforms.CenterCrop((224, 224))])
 
     for (img_batch, dire_batch, eps_batch, isfake_batch), (img_pathes, dire_pathes, eps_pathes) in tqdm(dataloader):
