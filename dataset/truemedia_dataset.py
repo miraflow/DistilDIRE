@@ -10,8 +10,8 @@ from PIL import Image
 class TMDistilDireDataset(Dataset):
     def __init__(self, root, prepared_dire=True):
         self.root = root
-        self.__fake_img_paths = glob(osp.join(root, 'images/fakes/', '*.png'))
-        self.__real_img_paths = glob(osp.join(root, 'images/reals/', '*.png'))
+        self.__fake_img_paths = [p for p in glob(osp.join(root, 'images/fakes/', '*')) if p.split('.')[-1].lower() in ['jpg', 'jpeg', 'png', 'webp']]
+        self.__real_img_paths = [p for p in glob(osp.join(root, 'images/reals/', '*')) if p.split('.')[-1].lower() in ['jpg', 'jpeg', 'png', 'webp']]
         self.prepared_dire = prepared_dire
         if self.prepared_dire:
             self.transform = Compose([Resize(224), CenterCrop((224, 224))])

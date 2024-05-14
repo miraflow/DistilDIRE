@@ -174,7 +174,7 @@ if __name__ == "__main__":
     os.makedirs(osp.join(adm_args['save_root'], 'dire', 'reals'), exist_ok=True)
     os.makedirs(osp.join(adm_args['save_root'], 'eps', 'fakes'), exist_ok=True)
     os.makedirs(osp.join(adm_args['save_root'], 'eps', 'reals'), exist_ok=True)
-
+    print(f"Dataset length: {len(dataset)}")
     dataloader = DataLoader(dataset, batch_size=adm_args['batch_size'], shuffle=False, num_workers=2, drop_last=False,)
     transform = transforms.Compose([transforms.Resize(224), transforms.CenterCrop((224, 224))])
 
@@ -201,6 +201,6 @@ if __name__ == "__main__":
                 if not osp.exists(img_path):
                     torchvision.utils.save_image(img[i], img_path)
                 if not osp.exists(dire_path):
-                    torchvision.utils.save_image(dire[i], dire_path)
+                    torchvision.utils.save_image(dire_img[i], dire_path)
                 if not osp.exists(eps_path) and eps is not None:
                     torch.save(eps[i], eps_path)
