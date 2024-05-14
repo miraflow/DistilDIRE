@@ -50,119 +50,52 @@ mydataset/train|val|test
 Note that we currently provide single-gpu preprocessing script. But you can modify the script to run on multiple gpus. For eps and dire calculation we set the DDIM steps to 20. This should be same when inference.
 
 ### Train
-For training Distil-DIRE, we only provide single gpu training script. 
+For training Distil-DIRE, we only provide single gpu training script. Be sure to have `datasets` directory in the root of the project and your dataset inside the `datasets` directory. 
 ```
-python3 y1_train.py
+python3 -m train --batch 128 --exp_name truemedia-distil-dire --datasets mydataset --epoch 100 --lr 1e-4
+```
+
+#### Fine-tuning
+You can also fine-tune the model on your own dataset. For fine-tuning, you need to provide the path to the pretrained model. 
+```bash
+python3 -m train --batch 128 --exp_name truemedia-distil-dire --datasets mydataset --epoch 100 --lr 1e-4 --pretrained_weights YOUR_PRETRAINED_MODEL_PATH
 ```
  
-You should prepare dataset in the following format:
-```
-mydataset/train/val/test
-└── images
-    ├── fakes
-    │   └──img1.png...
-    ├── reals
-    │   └──rimg1.png...
-└── eps
-    ├── fakes
-    │   └──img1.pt...
-    ├── reals
-    │   └──rimg1.pt...
-└── dire
-    ├── fakes
-        └──img1.png...
-    ├── reals
-        └──rimg1.png...
 
-```
-For eps calculation, you can use the following script:
-```
-python3 y1_eps.py
+### Test
+For testing the model, you can use the following script:
+```bash
+python3 -m test --test True --datasets mydataset --pretrained_weights YOUR_PRETRAINED_MODEL_PATH
 ```
 
-## Deploy
 
-Pretrained models are available in the following S3 paths.
-
-| Model | S3 Model Path |
-| --- | --- |
-| ADM | s3://truemedia-dataset/256x256-adm.pt |
-| Celeba-HQ DIRE| s3://truemedia-dataset/celebahq_sdv2.pth |
-| ImageNet DIRE | s3://truemedia-dataset/imagenet_adm.pth |
-| Distil-DIRE | s3://truemedia-dataset/y1distil-truemedia-240408-e19.pth |
-
-
-
-
-### Test locally.
-```
-python -u -m server
-curl -X GET http://localhost:8000/healthcheck
-curl -X POST http://localhost:8000/predict \
-    -H "Content-Type: application/json" \
-    --data '{"file_path":"https://www.evalai.org/ocasio.mp4"}'
-
-```
 ### with Docker 
 ```
-export DOCKER_REGISTRY="miraflow" # Put your Docker Hub username here  
+export DOCKER_REGISTRY="YOUR_NAME" # Put your Docker Hub username here  
 export DATE=`date +%Y%m%d` # Get the current date
-# Build the Docker image for runtime
-docker build -t "$DOCKER_REGISTRY/dire-yewon:rt-$DATE" -f Dockerfile-run .
 
 # Build the Docker image for development
-docker build -t "$DOCKER_REGISTRY/dire-yewon:dev-$DATE" -f Dockerfile-dev .
+docker build -t "$DOCKER_REGISTRY/distil-dire:dev-$DATE" -f Dockerfile .
 
 
 # Push your docker image to docker hub
 docker login
+docker push "$DOCKER_REGISTRY/distil-dire:dev-$DATE"
 
-docker push "$DOCKER_REGISTRY/dire-yewon:rt-$DATE"
-
-docker push "$DOCKER_REGISTRY/dire-yewon:dev-$DATE"
 ```
 
-
-Run this Docker image locally on a GPU to test that it can run inferences as expected:
-```
-docker run --gpus=all -d --rm -p 80:8000 --env SERVER_PORT=8000  --name "yewon-dire" "$DOCKER_REGISTRY/dire-yewon:rt-latest"
 
 # Devl env 
-export WORKDIR="~/Projects/yewon/"
-docker run --gpus=all --name=yewon_gpu_all_dire -v "$WORKDIR:/workspace/" -ti -e  "$DOCKER_REGISTRY/yewon-dire:dev-latest"
+```
+export WORKDIR="YOUR_WORKDIR" # Put your working directory here
+docker run --gpus=all --name=truemedia_gpu_all_distildire -v "$WORKDIR:/workspace/" -ti -e  "$DOCKER_REGISTRY/distil-dire:dev-$DATE"
 
 # work inside the container (/workspace)
 ```
 
 ### Note
-* This repo runs on ADM diffusion model (256x256, unconditional) trained on ImageNet 1k dataset and ResNet-50 deepfake classifier trained on ImageNet 1k dataset. 
+* This repo runs on ADM diffusion model (256x256, unconditional) trained on ImageNet 1k dataset and ResNet-50 classifier trained on ImageNet 1k dataset. 
 * Minimum requirements: 1 GPU, 10GB VRAM
-* Decision of transforms in model inference influences the model performance a lot. For low-latency, it is not recommended to use 5Crops or 10Crops.
-
-
-map port 80 on your host to port 8000 in the Docker container. AWS only allows 80.
-
-..and in a separate terminal run the following command one or more times
-
-```
-curl -X GET http://localhost:8000/healthcheck
-```
-until you see {"healthy":true}
-
-```
-curl -X POST http://localhost:8000/predict \
-    -H "Content-Type: application/json" \
-    --data '{"file_path":"https://www.evalai.org/ocasio.mp4"}'
-```
-
-sudo usermod -a -G docker ubuntu
-allowing ubuntu user to execute Docker commands without needing superuser privileges. 
-
-```
-curl -X POST http://ec2-54-212-97-80.us-west-2.compute.amazonaws.com/predict \
-    -H "Content-Type: application/json" \
-    --data '{"file_path":"https://www.evalai.org/ocasio.mp4"}'
-```
 
 
 ## Acknowledgments

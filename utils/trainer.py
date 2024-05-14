@@ -10,7 +10,7 @@ from tqdm.auto import tqdm
 import numpy as np
 
 from utils.config import CONFIGCLASS
-from distill_model import DistilDIRE
+from networks.distill_model import DistilDIRE
 from utils.warmup import GradualWarmupScheduler
 
 
@@ -76,7 +76,7 @@ class BaseModel(nn.Module):
 
 class Trainer(BaseModel):
     def name(self):
-        return "Trainer"
+        return "DistilDIRE Trainer"
 
     def __init__(self, cfg: CONFIGCLASS, train_loader, val_loader, run, rank=0, distributed=True, world_size=1):
         super().__init__(cfg)
@@ -174,10 +174,14 @@ class Trainer(BaseModel):
     
     
     def load_networks(self, model_path):
-        state_dict = torch.load(model_path, map_location=self.device)["model"]
-        state_dict = {k.replace("module.", ""): v for k, v in state_dict.items()}
+        state_dict = torch.load(model_path, map_location=self.device)
+        model_state_dict = state_dict["model"]
+        optimizer_state_dict = state_dict["optimizer"]
+        model_state_dict = {k.replace("module.", ""): v for k, v in model_state_dict.items()}
+        optimizer_state_dict = {k.replace("module.", ""): v for k, v in optimizer_state_dict.items()}
 
-        self.student.load_state_dict(state_dict)
+        self.student.load_state_dict(model_state_dict)
+        self.optimizer.load_state_dict(optimizer_state_dict)
         
         print(f"Model loaded from {model_path}")
         return True 
@@ -217,8 +221,8 @@ class Trainer(BaseModel):
         if self.run:
             self.run.log({"val_acc": acc, "val_ap": ap})
             self.run.log({"N_FAKE": N_FAKE, "N_REAL": N_REAL})
-            print(f"Validation: acc: {acc}, ap: {ap}")
-            print(f"N_FAKE: {N_FAKE}, N_REAL: {N_REAL}")
+        print(f"Validation: acc: {acc}, ap: {ap}")
+        print(f"N_FAKE: {N_FAKE}, N_REAL: {N_REAL}")
         
         
     def train(self):

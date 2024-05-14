@@ -10,9 +10,8 @@ class DefaultConfigs(ABC):
     gpus = [0]
     seed = 3407
     arch = "resnet50"
-    datasets = ["zhaolian_train"]
-    datasets_test = ["adm_res_abs_ddim20s"]
-    mode = "binary"
+    datasets = [""]
+    datasets_test = [""]
     class_bal = False
     batch_size = 256
     val_every = 1
@@ -20,21 +19,7 @@ class DefaultConfigs(ABC):
     cropSize = 224
     epoch = "latest"
     num_workers = 2
-    serial_batches = False
     isTrain = True
-
-    # data augmentation
-    rz_interp = ["bilinear"]
-    blur_prob = 0.0
-    blur_sig = [0.5]
-    jpg_prob = 0.0
-    jpg_method = ["cv2"]
-    jpg_qual = [75]
-    gray_prob = 0.0
-    aug_resize = True
-    aug_crop = True
-    aug_flip = True
-    aug_norm = True
 
     ####### train setting ######
     warmup = False
@@ -59,12 +44,13 @@ class DefaultConfigs(ABC):
     # paths information
     root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     dataset_root = os.path.join(root_dir, "datasets")
-    exp_root = "/workspace/DIRE/experiments"
+    exp_root = os.path.join(root_dir, "experiments")
     _exp_name = ""
     exp_dir = ""
     ckpt_dir = ""
     logs_path = ""
     ckpt_path = ""
+    pretrained_weights = ""
 
     @property
     def exp_name(self):
@@ -76,9 +62,9 @@ class DefaultConfigs(ABC):
         self.exp_dir: str = os.path.join(self.exp_root, self.exp_name)
         self.ckpt_dir: str = os.path.join(self.exp_dir, "ckpt")
         self.logs_path: str = os.path.join(self.exp_dir, "logs.txt")
-
-        os.makedirs(self.exp_dir, exist_ok=True)
-        os.makedirs(self.ckpt_dir, exist_ok=True)
+        if self.isTrain:
+            os.makedirs(self.exp_dir, exist_ok=True)
+            os.makedirs(self.ckpt_dir, exist_ok=True)
 
     def to_dict(self):
         dic = {}
@@ -119,10 +105,13 @@ CONFIGCLASS = Type[DefaultConfigs]
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--gpus", default="0", type=str)
+parser.add_argument("--batch", default=256, type=int)
+parser.add_argument("--epoch", default="100", type=int)
 parser.add_argument("--exp_name", default="", type=str)
 parser.add_argument("--datasets", default="", type=str)
-parser.add_argument("--ckpt", default="model_epoch_latest.pth", type=str)
 parser.add_argument("--pretrained_weights", default="", type=str)
+parser.add_argument("--lr", default=0.00001, type=float)
+parser.add_argument("--test", default=False, type=str2bool)
 parser.add_argument("opts", default=[], nargs=argparse.REMAINDER)
 args = parser.parse_args()
 
@@ -149,10 +138,14 @@ if args.opts:
 
 #cfg.gpus: list = args.gpus
 os.environ["CUDA_VISIBLE_DEVICES"] = args.gpus#", ".join([str(gpu) for gpu in cfg.gpus])
+if args.test:
+    cfg.isTrain = False
 cfg.exp_name = args.exp_name
-cfg.ckpt_path = os.path.join(cfg.ckpt_dir, args.ckpt)
+cfg.batch_size = args.batch
 cfg.datasets = args.datasets
 cfg.pretrained_weights = args.pretrained_weights
+cfg.lr = args.lr
+cfg.nepoch = args.epoch
 
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 cfg.dataset_root = os.path.join(root_dir, 'datasets', cfg.datasets)

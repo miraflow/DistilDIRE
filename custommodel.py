@@ -6,7 +6,7 @@ import torchvision.transforms as transforms
 from torchvision.utils import save_image
 import torchvision.transforms.functional as TF
 from utils.utils import get_distill_network
-from distill_model import DistilDIRE
+from DistilDIRE.networks.distill_model import DistilDIRE
 
 from PIL import Image 
 import os
