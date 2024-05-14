@@ -6,7 +6,7 @@ import torchvision.transforms as transforms
 from torchvision.utils import save_image
 import torchvision.transforms.functional as TF
 from utils.utils import get_distill_network
-from distill_model import DistilDIRE
+from DistilDIRE.networks.distill_model import DistilDIRE
 
 from PIL import Image 
 import os
@@ -16,7 +16,7 @@ import typing
 import requests
 import time  # Import the time module
 from utils.utils import get_network, str2bool, to_cuda
-from guided_diffusion.compute_dire import dire, create_argparser, dire_get_first_step_noise
+from guided_diffusion.compute_dire_eps import dire, create_argparser, dire_get_first_step_noise
 
 from guided_diffusion.guided_diffusion.script_util import (
     create_model_and_diffusion,

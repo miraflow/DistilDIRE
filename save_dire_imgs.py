@@ -1,6 +1,6 @@
 import torch 
 from torchvision.utils import save_image
-from guided_diffusion.compute_dire import dire
+from guided_diffusion.compute_dire_eps import dire
 from glob import glob 
 from tqdm.auto import tqdm
 from PIL import Image
@@ -9,7 +9,7 @@ import numpy as np
 import os.path as osp
 
 
-from guided_diffusion.compute_dire import dire, create_argparser,dire_get_first_step_noise
+from guided_diffusion.compute_dire_eps import dire, create_argparser,dire_get_first_step_noise
 from guided_diffusion.guided_diffusion.script_util import create_model_and_diffusion, model_and_diffusion_defaults, dict_parse
 
 dire_root = '/workspace/truemedia-dire/reals/DIRE'

@@ -15,7 +15,7 @@ from tensorboardX import SummaryWriter
 from tqdm import tqdm
 import gc
 
-from guided_diffusion.compute_dire import dire, create_argparser,dire_get_first_step_noise
+from guided_diffusion.compute_dire_eps import dire, create_argparser,dire_get_first_step_noise
 from guided_diffusion.guided_diffusion.script_util import create_model_and_diffusion, model_and_diffusion_defaults, dict_parse
 
 from utils.config import cfg

@@ -1,15 +1,8 @@
 import argparse
-import os
-import sys
-import time
 import warnings
-from importlib import import_module
-
 import numpy as np
 import torch
-import torch.nn as nn
-from PIL import Image
-from distill_model import DistilDIRE
+
 
 warnings.filterwarnings("ignore", category=UserWarning, module="torch.nn.functional")
 
@@ -44,78 +37,6 @@ def to_cuda(data, device="cuda", exclude_keys: "list[str]" = None):
         data = data
     return data
 
-
-class HiddenPrints:
-    def __enter__(self):
-        self._original_stdout = sys.stdout
-        sys.stdout = open(os.devnull, "w")
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        sys.stdout.close()
-        sys.stdout = self._original_stdout
-
-
-class Logger(object):
-    def __init__(self):
-        self.terminal = sys.stdout
-        self.file = None
-
-    def open(self, file, mode=None):
-        if mode is None:
-            mode = "w"
-        self.file = open(file, mode)
-
-    def write(self, message, is_terminal=1, is_file=1):
-        if "\r" in message:
-            is_file = 0
-        if is_terminal == 1:
-            self.terminal.write(message)
-            self.terminal.flush()
-        if is_file == 1:
-            self.file.write(message)
-            self.file.flush()
-
-    def flush(self):
-        # this flush method is needed for python 3 compatibility.
-        # this handles the flush command by doing nothing.
-        # you might want to specify some extra behavior here.
-        pass
-
-
-def get_network(arch: str, isTrain=False, continue_train=False, init_gain=0.02, pretrained=True):
-    if "resnet" in arch:
-        from networks.resnet import ResNet
-
-        resnet = getattr(import_module("networks.resnet"), arch)
-        if isTrain:
-            if continue_train:
-                model: ResNet = resnet(num_classes=1)
-            else:
-                # TODO
-                model: ResNet = resnet(pretrained=pretrained)
-                model.fc = nn.Linear(2048, 1)
-                nn.init.normal_(model.fc.weight.data, 0.0, init_gain)
-        else:
-            model: ResNet = resnet(num_classes=1)
-        return model
-    else:
-        raise ValueError(f"Unsupported arch: {arch}")
-
-# TODO : argument 주는 거 형식 맞는지 체크해야함
-def get_distill_network(isTrain=False, init_gain=0.02, rank=None):
-    from easydict import EasyDict as edict
-    args = edict()
-
-    args['student_model_path'] = None
-    args['is_distill'] = True
-    args['is_train'] = isTrain
-    args['init_gain'] = init_gain
-    args['thr'] = 0.5
-    
-    model = DistilDIRE(f"cuda:{rank}")
-    
-    return model
-    
 
 def pad_img_to_square(img: np.ndarray):
     H, W = img.shape[:2]
