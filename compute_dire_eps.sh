@@ -1,6 +1,6 @@
 ## set MODEL_PATH, num_samples, has_subfolder, images_dir, recons_dir, dire_dir
-DATA_ROOT="/workspace/DistilDIRE/datasets"
-SAVE_ROOT="/workspace/DistilDIRE/samples"
+DATA_ROOT="/workspace/DistilDIRE/datasets/imagenet-train"
+SAVE_ROOT="/workspace/DistilDIRE/datasets/distil-train-imagenet"
 
 MODEL_PATH="models/256x256-adm.pt" # imagenet pretrained adm (unconditional, 256x256)
 SAMPLE_FLAGS="--batch_size 16" # ddim20 is forced
