@@ -154,8 +154,17 @@ def dire_get_first_step_noise(img_batch:torch.Tensor, model, diffusion, args, de
 
 
 if __name__ == "__main__":
+    from torch.utils.data.distributed import DistributedSampler
+    import torch.distributed as dist
+    import os 
+    
+    dist.init_process_group(backend='nccl', init_method='env://')
+    
+    local_rank = int(os.environ['LOCAL_RANK']) 
+    torch.cuda.set_device(local_rank)
+    
     # Set device for this process
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    device = torch.device("cuda") 
 
     adm_args = create_argparser()
     adm_args['timestep_respacing'] = 'ddim20'
@@ -167,7 +176,8 @@ if __name__ == "__main__":
     adm_model.eval()
 
     dataset = TMDistilDireDataset(adm_args['data_root'], prepared_dire=False)
-
+    sampler = DistributedSampler(dataset, shuffle=False)
+    
     os.makedirs(osp.join(adm_args['save_root'], 'images', 'fakes'), exist_ok=True)
     os.makedirs(osp.join(adm_args['save_root'], 'images', 'reals'), exist_ok=True)
     os.makedirs(osp.join(adm_args['save_root'], 'dire', 'fakes'), exist_ok=True)
@@ -175,10 +185,23 @@ if __name__ == "__main__":
     os.makedirs(osp.join(adm_args['save_root'], 'eps', 'fakes'), exist_ok=True)
     os.makedirs(osp.join(adm_args['save_root'], 'eps', 'reals'), exist_ok=True)
     print(f"Dataset length: {len(dataset)}")
-    dataloader = DataLoader(dataset, batch_size=adm_args['batch_size'], shuffle=False, num_workers=2, drop_last=False,)
+    dataloader = DataLoader(dataset, batch_size=adm_args['batch_size'], num_workers=2, drop_last=False, sampler=sampler)
     transform = transforms.Compose([transforms.Resize(224), transforms.CenterCrop((224, 224))])
 
     for (img_batch, dire_batch, eps_batch, isfake_batch), (img_pathes, dire_pathes, eps_pathes) in tqdm(dataloader):
+        haveall=True 
+        for i in range(len(img_batch)):
+            basename = osp.basename(img_pathes[i])
+            isfake = isfake_batch[i]
+            
+            img_path = osp.join(adm_args['save_root'], 'images', 'fakes', basename) if isfake else osp.join(adm_args['save_root'], 'images', 'reals', basename)
+            dire_path = img_path.replace('/images/', '/dire/')
+            eps_path = img_path.replace('/images/', '/eps/').split('.')[0] + '.pt'
+            if (not osp.exists(img_pathes[i])) or (not osp.exists(dire_path)) or (not osp.exists(eps_path)):
+                haveall=False
+                break
+        if haveall:
+            continue
         with torch.no_grad():
             eps = None
             if adm_args['compute_eps']:
