@@ -231,7 +231,7 @@ class Trainer(BaseModel):
             if self.run:
                 self.run.log({"epoch": epoch})
             if epoch % self.val_every == 0 and epoch != 0:
-                self.validate()
+                self.validate(gather=self.distributed)
             
             self.student.train()
             for data_and_paths in tqdm(self.train_loader, desc=f"Trainig {epoch} epoch..."):

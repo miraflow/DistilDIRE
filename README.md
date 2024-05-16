@@ -47,18 +47,19 @@ mydataset/train|val|test
     ├── reals
         └──rimg1.png...
 ``` 
-Note that we currently provide single-gpu preprocessing script. But you can modify the script to run on multiple gpus. For eps and dire calculation we set the DDIM steps to 20. This should be same when inference.
+For eps and dire calculation we set the DDIM steps to 20. This should be same when inference.
 
 ### Train
-For training Distil-DIRE, we only provide single gpu training script. Be sure to have `datasets` directory in the root of the project and your dataset inside the `datasets` directory. 
+For training Distil-DIRE, be sure to have `datasets` directory in the root of the project and your dataset inside the `datasets` directory. 
 ```
-python3 -m train --batch 128 --exp_name truemedia-distil-dire --datasets mydataset --epoch 100 --lr 1e-4
+torchrun --standalone --nproc_per_node 8 -m train --batch 128 --exp_name truemedia-distil-dire-mydataset --datasets mydataset --datasets_test mytestset --epoch 100 --lr 1e-4
+
 ```
 
 #### Fine-tuning
 You can also fine-tune the model on your own dataset. For fine-tuning, you need to provide the path to the pretrained model. 
 ```bash
-python3 -m train --batch 128 --exp_name truemedia-distil-dire --datasets mydataset --epoch 100 --lr 1e-4 --pretrained_weights YOUR_PRETRAINED_MODEL_PATH
+torchrun --standalone --nproc_per_node 8 -m train --batch 128 --exp_name truemedia-distil-dire-mydataset --datasets mydataset --datasets_test mytestset --epoch 100 --lr 1e-4 --pretrained_weights YOUR_PRETRAINED_MODEL_PATH
 ```
  
 

@@ -44,6 +44,7 @@ class DefaultConfigs(ABC):
     # paths information
     root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     dataset_root = os.path.join(root_dir, "datasets")
+    dataset_test_root = os.path.join(root_dir, "datasets")
     exp_root = os.path.join(root_dir, "experiments")
     _exp_name = ""
     exp_dir = ""
@@ -109,6 +110,7 @@ parser.add_argument("--batch", default=256, type=int)
 parser.add_argument("--epoch", default="100", type=int)
 parser.add_argument("--exp_name", default="", type=str)
 parser.add_argument("--datasets", default="", type=str)
+parser.add_argument("--datasets_test", default="", type=str)
 parser.add_argument("--pretrained_weights", default="", type=str)
 parser.add_argument("--lr", default=0.00001, type=float)
 parser.add_argument("--test", default=False, type=str2bool)
@@ -143,12 +145,14 @@ if args.test:
 cfg.exp_name = args.exp_name
 cfg.batch_size = args.batch
 cfg.datasets = args.datasets
+cfg.datasets_test = args.datasets_test if args.datasets_test else args.datasets
 cfg.pretrained_weights = args.pretrained_weights
 cfg.lr = args.lr
 cfg.nepoch = args.epoch
 
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 cfg.dataset_root = os.path.join(root_dir, 'datasets', cfg.datasets)
+cfg.dataset_test_root = os.path.join(root_dir, 'datasets', cfg.datasets_test)
 
 # if isinstance(cfg.datasets, str):
 #     cfg.datasets = cfg.datasets.split(",")
