@@ -82,7 +82,7 @@ class Trainer(BaseModel):
         super().__init__(cfg)
         self.arch = cfg.arch
         self.rank = rank
-        self.device = torch.device("cuda") 
+        self.device = torch.device(f"cuda") 
         self.distributed = distributed
         self.world_size = world_size
         
@@ -126,9 +126,6 @@ class Trainer(BaseModel):
                 self.optimizer, multiplier=1, total_epoch=cfg.warmup_epoch, after_scheduler=scheduler_cosine
             )
             self.scheduler.step()
-        
-        if cfg.continue_train:
-            self.load_networks(cfg.epoch)
         
         # AMP
         self.scaler = torch.cuda.amp.grad_scaler.GradScaler()
@@ -180,7 +177,10 @@ class Trainer(BaseModel):
         model_state_dict = {k.replace("module.", ""): v for k, v in model_state_dict.items()}
         optimizer_state_dict = {k.replace("module.", ""): v for k, v in optimizer_state_dict.items()}
 
-        self.student.load_state_dict(model_state_dict)
+        if self.distributed:
+            self.student.module.load_state_dict(model_state_dict)
+        else:
+            self.student.load_state_dict(model_state_dict)
         self.optimizer.load_state_dict(optimizer_state_dict)
         
         print(f"Model loaded from {model_path}")
