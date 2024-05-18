@@ -7,8 +7,12 @@ def main(run, cfg):
     from torch.utils.data.distributed import DistributedSampler
 
     from utils.trainer import Trainer
-    dataset= TMDistilDireDataset(cfg.dataset_root)
-    val_dataset = TMDistilDireDataset(cfg.dataset_test_root)
+    if cfg.reproduce_dire:
+        dataset = TMDireDataset(cfg.dataset_root)
+        val_dataset = TMDireDataset(cfg.dataset_test_root)
+    else:
+        dataset= TMDistilDireDataset(cfg.dataset_root)
+        val_dataset = TMDistilDireDataset(cfg.dataset_test_root)
     sampler = DistributedSampler(dataset)
     val_samlper = DistributedSampler(val_dataset)
     dataloader = DataLoader(dataset, 
@@ -32,7 +36,7 @@ if __name__ == "__main__":
     import wandb
     
     from torch.utils.data import DataLoader
-    from dataset import TMDistilDireDataset
+    from dataset import TMDistilDireDataset, TMDireDataset
     
     dist.init_process_group(backend='nccl', init_method='env://')
     local_rank = int(os.environ['LOCAL_RANK']) 

@@ -31,3 +31,24 @@ class DistilDIRE(torch.nn.Module):
         feature = self.student_backbone(img_tens) 
         logit = self.student_head(feature)
         return {'logit':logit, 'feature':feature}
+    
+class DIRE(torch.nn.Module):
+    def __init__(self, device):
+        super(DIRE, self).__init__()
+    
+        # define models
+        student = TVM.resnet50()
+        self.student_backbone = nn.Sequential(OrderedDict([*(list(student.named_children())[:-2])])) # drop last layer which is classifier
+        # extract last classifier head from teacher resnet 
+        self.student_head = nn.Sequential(nn.AdaptiveAvgPool2d(1),
+                                          nn.Flatten(),
+                                          nn.Linear(2048, 1))
+        self.device = device
+        
+        
+    def forward(self, dire):
+        dire = dire.to(self.device)
+    
+        feature = self.student_backbone(dire) 
+        logit = self.student_head(feature)
+        return {'logit':logit, 'feature':feature}

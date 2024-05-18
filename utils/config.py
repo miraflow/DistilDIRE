@@ -53,6 +53,7 @@ class DefaultConfigs(ABC):
     ckpt_path = ""
     pretrained_weights = ""
     kd = True
+    reproduce_dire = False
 
     @property
     def exp_name(self):
@@ -115,6 +116,7 @@ parser.add_argument("--datasets_test", default="", type=str)
 parser.add_argument("--pretrained_weights", default="", type=str)
 parser.add_argument("--lr", default=0.00001, type=float)
 parser.add_argument("--test", default=False, type=str2bool)
+parser.add_argument("--reproduce_dire", default=False, type=str2bool)
 parser.add_argument("--kd", default=True, type=str2bool)
 parser.add_argument("opts", default=[], nargs=argparse.REMAINDER)
 args = parser.parse_args()
@@ -156,6 +158,7 @@ root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 cfg.dataset_root = os.path.join(root_dir, 'datasets', cfg.datasets)
 cfg.dataset_test_root = os.path.join(root_dir, 'datasets', cfg.datasets_test)
 cfg.kd = args.kd
+cfg.reproduce_dire = args.reproduce_dire
 
 # if isinstance(cfg.datasets, str):
 #     cfg.datasets = cfg.datasets.split(",")

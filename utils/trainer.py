@@ -10,7 +10,7 @@ from tqdm.auto import tqdm
 import numpy as np
 
 from utils.config import CONFIGCLASS
-from networks.distill_model import DistilDIRE
+from networks.distill_model import DistilDIRE, DIRE
 from utils.warmup import GradualWarmupScheduler
 import os.path as osp
 
@@ -82,6 +82,7 @@ class Trainer(BaseModel):
     def __init__(self, cfg: CONFIGCLASS, train_loader, val_loader, run, rank=0, distributed=True, world_size=1, kd=True):
         super().__init__(cfg)
         self.arch = cfg.arch
+        self.reproduce_dire = cfg.reproduce_dire
         self.test_name = osp.basename(cfg.dataset_test_root)
         self.rank = rank
         self.device = torch.device(f"cuda") 
@@ -98,16 +99,20 @@ class Trainer(BaseModel):
         # wandb logger (pass if None)
         self.run = run
         
-        self.student = DistilDIRE(self.device).to(self.device)
-        __backbone = TVM.resnet50(weights=TVM.ResNet50_Weights.DEFAULT)
-        self.teacher = nn.Sequential(OrderedDict([*(list(__backbone.named_children())[:-2])])) # drop last layer which is classifier
-        self.teacher.eval().to(self.device)
-        # Freeze teacher model
-        for param in self.teacher.parameters():
-            param.requires_grad = False
+        if self.reproduce_dire:
+            self.student = DIRE(self.device).to(self.device)
+        else: 
+            self.student = DistilDIRE(self.device).to(self.device)
+            __backbone = TVM.resnet50(weights=TVM.ResNet50_Weights.DEFAULT)
+            self.teacher = nn.Sequential(OrderedDict([*(list(__backbone.named_children())[:-2])])) # drop last layer which is classifier
+            self.teacher.eval().to(self.device)
+            # Freeze teacher model
+            for param in self.teacher.parameters():
+                param.requires_grad = False
+            self.kd_criterion = nn.MSELoss(reduction='mean')
         
         self.cls_criterion = nn.BCEWithLogitsLoss()
-        self.kd_criterion = nn.MSELoss(reduction='mean')
+        
         # initialize optimizers
         if cfg.optim == "adam":
             self.optimizer = torch.optim.Adam(self.student.parameters(), lr=cfg.lr, betas=(cfg.beta1, 0.999))
@@ -143,23 +148,31 @@ class Trainer(BaseModel):
 
 
     def set_input(self, input):
-        img, dire, eps, label = input # if len(input) == 3 else (input[0], input[1], {})
+        if self.reproduce_dire:
+            dire, label = input
+            self.dire = dire.to(self.device)
+            self.label = label.to(self.device).float()
             
-        self.input = img.to(self.device)
-        self.dire = dire.to(self.device)
-        self.eps = eps.to(self.device)
-        self.label = label.to(self.device).float()
+        else:
+            img, dire, eps, label = input # if len(input) == 3 else (input[0], input[1], {})
+            self.input = img.to(self.device)
+            self.dire = dire.to(self.device)
+            self.eps = eps.to(self.device)
+            self.label = label.to(self.device).float()
        
    
     def forward(self):
-        self.output = self.student(self.input, self.eps)
-        with torch.no_grad():
-            self.teacher_feature = self.teacher(self.dire)
+        if self.reproduce_dire:
+            self.output = self.student(self.dire)
+        else:
+            self.output = self.student(self.input, self.eps)
+            with torch.no_grad():
+                self.teacher_feature = self.teacher(self.dire)
 
 
     def get_loss(self, kd=True):
         loss = self.cls_criterion(self.output['logit'].squeeze(), self.label) 
-        if kd:
+        if kd and (not self.reproduce_dire):
             loss2 = self.kd_criterion(self.output['feature'], self.teacher_feature)
             loss = loss + loss2 * 0.5
         return loss
