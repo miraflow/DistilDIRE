@@ -13,7 +13,7 @@ def main(run, cfg):
     trainer = Trainer(cfg, dataloader, dataloader, run, 0, False, 1)
     assert len(cfg.pretrained_weights) != 0, "Give proper checkpoint path"
     trainer.load_networks(cfg.pretrained_weights)
-    trainer.validate(False)
+    trainer.validate(False, save=True, save_name=f"{cfg.root_dir}/{cfg.datasets_test}_{cfg.pretrained_weights.split('/')[-3]}_results.txt")
 
 if __name__ == "__main__":
     main(None, cfg)

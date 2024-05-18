@@ -19,7 +19,7 @@ def main(run, cfg):
                             batch_size=cfg.batch_size, 
                             sampler=val_samlper,
                             num_workers=2)
-    trainer = Trainer(cfg, dataloader, val_loader, run, local_rank, True, world_size)
+    trainer = Trainer(cfg, dataloader, val_loader, run, local_rank, True, world_size, cfg.kd)
     if cfg.pretrained_weights:
         trainer.load_networks(cfg.pretrained_weights)
     trainer.train()
