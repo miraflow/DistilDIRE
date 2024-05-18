@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 aws/
+*.txt
 aws*
 
 ./256x256-adm.pt
