@@ -5,13 +5,14 @@ import torch.nn as nn
 import torchvision.models as TVM
 from collections import OrderedDict
 from sklearn.metrics import accuracy_score, average_precision_score
-    
+import torch.distributed as dist
 from tqdm.auto import tqdm
 import numpy as np
 
 from utils.config import CONFIGCLASS
 from networks.distill_model import DistilDIRE
 from utils.warmup import GradualWarmupScheduler
+import os.path as osp
 
 
 class BaseModel(nn.Module):
@@ -78,13 +79,15 @@ class Trainer(BaseModel):
     def name(self):
         return "DistilDIRE Trainer"
 
-    def __init__(self, cfg: CONFIGCLASS, train_loader, val_loader, run, rank=0, distributed=True, world_size=1):
+    def __init__(self, cfg: CONFIGCLASS, train_loader, val_loader, run, rank=0, distributed=True, world_size=1, kd=True):
         super().__init__(cfg)
         self.arch = cfg.arch
+        self.test_name = osp.basename(cfg.dataset_test_root)
         self.rank = rank
         self.device = torch.device(f"cuda") 
         self.distributed = distributed
         self.world_size = world_size
+        self.kd = kd
         
         self.train_loader = train_loader
         self.val_loader = val_loader
@@ -115,7 +118,7 @@ class Trainer(BaseModel):
         
         if self.distributed:
             from torch.nn.parallel import DistributedDataParallel as DDP
-
+            
             self.student = DDP(self.student, device_ids=[rank], output_device=rank)
         
         if cfg.warmup:
@@ -154,17 +157,19 @@ class Trainer(BaseModel):
             self.teacher_feature = self.teacher(self.dire)
 
 
-    def get_loss(self):
-        loss1 = self.cls_criterion(self.output['logit'].squeeze(), self.label) 
-        loss2 = self.kd_criterion(self.output['feature'], self.teacher_feature)
-        return loss1 + loss2 * 0.5
+    def get_loss(self, kd=True):
+        loss = self.cls_criterion(self.output['logit'].squeeze(), self.label) 
+        if kd:
+            loss2 = self.kd_criterion(self.output['feature'], self.teacher_feature)
+            loss = loss + loss2 * 0.5
+        return loss
 
 
     @torch.cuda.amp.autocast()
     def optimize_parameters(self):
         self.optimizer.zero_grad()
         self.forward()
-        self.loss = self.get_loss()
+        self.loss = self.get_loss(self.kd)
         self.scaler.scale(self.loss).backward()
         self.scaler.step(self.optimizer)
         self.scaler.update()
@@ -187,7 +192,7 @@ class Trainer(BaseModel):
         return True 
     
     @torch.no_grad()
-    def validate(self, gather=False):
+    def validate(self, gather=False, save=False, save_name=""):
         self.student.eval()
         y_pred = []
         y_true = []
@@ -223,11 +228,14 @@ class Trainer(BaseModel):
             self.run.log({"N_FAKE": N_FAKE, "N_REAL": N_REAL})
         print(f"Validation: acc: {acc}, ap: {ap}")
         print(f"N_FAKE: {N_FAKE}, N_REAL: {N_REAL}")
+        if save:
+            with open(save_name, "w") as f:
+                f.write(f"Validation: acc: {acc}, ap: {ap}")
+                f.write(f"N_FAKE: {N_FAKE}, N_REAL: {N_REAL}")
         
         
     def train(self):
         for epoch in range(self.cfg.nepoch):
-            self.cur_epoch += 1
             if self.run:
                 self.run.log({"epoch": epoch})
             if epoch % self.val_every == 0 and epoch != 0:
@@ -248,3 +256,6 @@ class Trainer(BaseModel):
                 
             if self.cfg.warmup:
                 self.scheduler.step()
+            if self.distributed:
+                dist.barrier()
+            self.cur_epoch = epoch
