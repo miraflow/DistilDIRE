@@ -1,1 +1,1 @@
-from .truemedia_dataset import TMDistilDireDataset
+from .truemedia_dataset import TMDistilDireDataset, TMDireDataset
