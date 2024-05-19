@@ -89,6 +89,7 @@ class Trainer(BaseModel):
         self.distributed = distributed
         self.world_size = world_size
         self.kd = kd
+        self.kd_weight = cfg.kd_weight
         
         self.train_loader = train_loader
         self.val_loader = val_loader
@@ -174,7 +175,7 @@ class Trainer(BaseModel):
         loss = self.cls_criterion(self.output['logit'].squeeze(), self.label) 
         if kd and (not self.reproduce_dire):
             loss2 = self.kd_criterion(self.output['feature'], self.teacher_feature)
-            loss = loss + loss2 * 0.5
+            loss = loss + loss2 * self.kd_weight
         return loss
 
 
