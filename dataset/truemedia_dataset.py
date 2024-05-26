@@ -39,7 +39,8 @@ class TMDistilDireDataset(Dataset):
         if self.prepared_dire:
             dire = Image.open(dire_path).convert('RGB')
             dire = TF.to_tensor(dire)*2 - 1
-            eps = torch.load(eps_path, map_location='cpu')
+            eps = torch.load(eps_path, weights_only=True, mmap=True)
+            # eps = torch.zeros_like(img)
             assert img.shape[1:] == dire.shape[1:] == eps.shape[1:], f"Shape mismatch: {img.shape[1:]}, {dire.shape[1:]}, {eps.shape[1:]}"
             
         else:
@@ -48,3 +49,18 @@ class TMDistilDireDataset(Dataset):
             eps = torch.zeros_like(img)
 
         return (img, dire, eps, isfake), (img_path, dire_path, eps_path)
+    
+    
+# This is for reproducing DIRE results
+class TMDireDataset(TMDistilDireDataset):
+    def __init__(self, root):
+        super().__init__(root, prepared_dire=True)
+        
+    def __getitem__(self, idx):
+        img_path, dire_path, eps_path, isfake = self.img_paths[idx]
+    
+        dire = Image.open(dire_path).convert('RGB')
+        dire = TF.to_tensor(dire)*2 - 1
+        
+        return (dire, isfake), (dire_path,)
+        

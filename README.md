@@ -2,6 +2,14 @@
 Distil-DIRE is a lightweight version of DIRE, which can be used for real-time applications. Instead of calculating DIRE image directly, Distl-DIRE aims to reconstruct the features of corresponding DIRE image forwared by a image-net pretrained classifier with one-step noise of DDIM inversion. 
 ![overview](distil.png)
 
+### Pretrained DistilDIRE Checkpoints
+| Dataset | Model | Link |
+| --- | --- | --- |
+| CelebA-HQ | 224x224 | [link]() |
+| ImageNet | 224x224 | [link]() |
+
+
+
 
 ## Pretrained ADM diffusion model
 We use image-net pretrained unconditional ADM diffusion model for feature reconstruction. You can download the pretrained model from the following link:

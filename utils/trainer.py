@@ -5,13 +5,14 @@ import torch.nn as nn
 import torchvision.models as TVM
 from collections import OrderedDict
 from sklearn.metrics import accuracy_score, average_precision_score
-    
+import torch.distributed as dist
 from tqdm.auto import tqdm
 import numpy as np
 
 from utils.config import CONFIGCLASS
-from networks.distill_model import DistilDIRE
+from networks.distill_model import DistilDIRE, DIRE
 from utils.warmup import GradualWarmupScheduler
+import os.path as osp
 
 
 class BaseModel(nn.Module):
@@ -78,13 +79,17 @@ class Trainer(BaseModel):
     def name(self):
         return "DistilDIRE Trainer"
 
-    def __init__(self, cfg: CONFIGCLASS, train_loader, val_loader, run, rank=0, distributed=True, world_size=1):
+    def __init__(self, cfg: CONFIGCLASS, train_loader, val_loader, run, rank=0, distributed=True, world_size=1, kd=True):
         super().__init__(cfg)
         self.arch = cfg.arch
+        self.reproduce_dire = cfg.reproduce_dire
+        self.test_name = osp.basename(cfg.dataset_test_root)
         self.rank = rank
-        self.device = torch.device("cuda") 
+        self.device = torch.device(f"cuda") 
         self.distributed = distributed
         self.world_size = world_size
+        self.kd = kd
+        self.kd_weight = cfg.kd_weight
         
         self.train_loader = train_loader
         self.val_loader = val_loader
@@ -95,16 +100,20 @@ class Trainer(BaseModel):
         # wandb logger (pass if None)
         self.run = run
         
-        self.student = DistilDIRE(self.device).to(self.device)
-        __backbone = TVM.resnet50(weights=TVM.ResNet50_Weights.DEFAULT)
-        self.teacher = nn.Sequential(OrderedDict([*(list(__backbone.named_children())[:-2])])) # drop last layer which is classifier
-        self.teacher.eval().to(self.device)
-        # Freeze teacher model
-        for param in self.teacher.parameters():
-            param.requires_grad = False
+        if self.reproduce_dire:
+            self.student = DIRE(self.device).to(self.device)
+        else: 
+            self.student = DistilDIRE(self.device).to(self.device)
+            __backbone = TVM.resnet50(weights=TVM.ResNet50_Weights.DEFAULT)
+            self.teacher = nn.Sequential(OrderedDict([*(list(__backbone.named_children())[:-2])])) # drop last layer which is classifier
+            self.teacher.eval().to(self.device)
+            # Freeze teacher model
+            for param in self.teacher.parameters():
+                param.requires_grad = False
+            self.kd_criterion = nn.MSELoss(reduction='mean')
         
         self.cls_criterion = nn.BCEWithLogitsLoss()
-        self.kd_criterion = nn.MSELoss(reduction='mean')
+        
         # initialize optimizers
         if cfg.optim == "adam":
             self.optimizer = torch.optim.Adam(self.student.parameters(), lr=cfg.lr, betas=(cfg.beta1, 0.999))
@@ -115,7 +124,7 @@ class Trainer(BaseModel):
         
         if self.distributed:
             from torch.nn.parallel import DistributedDataParallel as DDP
-
+            
             self.student = DDP(self.student, device_ids=[rank], output_device=rank)
         
         if cfg.warmup:
@@ -126,9 +135,6 @@ class Trainer(BaseModel):
                 self.optimizer, multiplier=1, total_epoch=cfg.warmup_epoch, after_scheduler=scheduler_cosine
             )
             self.scheduler.step()
-        
-        if cfg.continue_train:
-            self.load_networks(cfg.epoch)
         
         # AMP
         self.scaler = torch.cuda.amp.grad_scaler.GradScaler()
@@ -143,31 +149,41 @@ class Trainer(BaseModel):
 
 
     def set_input(self, input):
-        img, dire, eps, label = input # if len(input) == 3 else (input[0], input[1], {})
+        if self.reproduce_dire:
+            dire, label = input
+            self.dire = dire.to(self.device)
+            self.label = label.to(self.device).float()
             
-        self.input = img.to(self.device)
-        self.dire = dire.to(self.device)
-        self.eps = eps.to(self.device)
-        self.label = label.to(self.device).float()
+        else:
+            img, dire, eps, label = input # if len(input) == 3 else (input[0], input[1], {})
+            self.input = img.to(self.device)
+            self.dire = dire.to(self.device)
+            self.eps = eps.to(self.device)
+            self.label = label.to(self.device).float()
        
    
     def forward(self):
-        self.output = self.student(self.input, self.eps)
-        with torch.no_grad():
-            self.teacher_feature = self.teacher(self.dire)
+        if self.reproduce_dire:
+            self.output = self.student(self.dire)
+        else:
+            self.output = self.student(self.input, self.eps)
+            with torch.no_grad():
+                self.teacher_feature = self.teacher(self.dire)
 
 
-    def get_loss(self):
-        loss1 = self.cls_criterion(self.output['logit'].squeeze(), self.label) 
-        loss2 = self.kd_criterion(self.output['feature'], self.teacher_feature)
-        return loss1 + loss2 * 0.5
+    def get_loss(self, kd=True):
+        loss = self.cls_criterion(self.output['logit'].squeeze(), self.label) 
+        if kd and (not self.reproduce_dire):
+            loss2 = self.kd_criterion(self.output['feature'], self.teacher_feature)
+            loss = loss + loss2 * self.kd_weight
+        return loss
 
 
     @torch.cuda.amp.autocast()
     def optimize_parameters(self):
         self.optimizer.zero_grad()
         self.forward()
-        self.loss = self.get_loss()
+        self.loss = self.get_loss(self.kd)
         self.scaler.scale(self.loss).backward()
         self.scaler.step(self.optimizer)
         self.scaler.update()
@@ -180,14 +196,17 @@ class Trainer(BaseModel):
         model_state_dict = {k.replace("module.", ""): v for k, v in model_state_dict.items()}
         optimizer_state_dict = {k.replace("module.", ""): v for k, v in optimizer_state_dict.items()}
 
-        self.student.load_state_dict(model_state_dict)
+        if self.distributed:
+            self.student.module.load_state_dict(model_state_dict)
+        else:
+            self.student.load_state_dict(model_state_dict)
         self.optimizer.load_state_dict(optimizer_state_dict)
         
         print(f"Model loaded from {model_path}")
         return True 
     
     @torch.no_grad()
-    def validate(self, gather=False):
+    def validate(self, gather=False, save=False, save_name=""):
         self.student.eval()
         y_pred = []
         y_true = []
@@ -223,11 +242,14 @@ class Trainer(BaseModel):
             self.run.log({"N_FAKE": N_FAKE, "N_REAL": N_REAL})
         print(f"Validation: acc: {acc}, ap: {ap}")
         print(f"N_FAKE: {N_FAKE}, N_REAL: {N_REAL}")
+        if save:
+            with open(save_name, "w") as f:
+                f.write(f"Validation: acc: {acc}, ap: {ap}")
+                f.write(f"N_FAKE: {N_FAKE}, N_REAL: {N_REAL}")
         
         
     def train(self):
         for epoch in range(self.cfg.nepoch):
-            self.cur_epoch += 1
             if self.run:
                 self.run.log({"epoch": epoch})
             if epoch % self.val_every == 0 and epoch != 0:
@@ -248,3 +270,6 @@ class Trainer(BaseModel):
                 
             if self.cfg.warmup:
                 self.scheduler.step()
+            if self.distributed:
+                dist.barrier()
+            self.cur_epoch = epoch
