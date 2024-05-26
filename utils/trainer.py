@@ -10,7 +10,7 @@ from tqdm.auto import tqdm
 import numpy as np
 
 from utils.config import CONFIGCLASS
-from networks.distill_model import DistilDIRE, DIRE
+from networks.distill_model import DistilDIRE, DIRE, DistilDIREOnlyEPS
 from utils.warmup import GradualWarmupScheduler
 import os.path as osp
 
@@ -83,6 +83,7 @@ class Trainer(BaseModel):
         super().__init__(cfg)
         self.arch = cfg.arch
         self.reproduce_dire = cfg.reproduce_dire
+        self.only_eps = cfg.only_eps
         self.test_name = osp.basename(cfg.dataset_test_root)
         self.rank = rank
         self.device = torch.device(f"cuda") 
@@ -103,7 +104,10 @@ class Trainer(BaseModel):
         if self.reproduce_dire:
             self.student = DIRE(self.device).to(self.device)
         else: 
-            self.student = DistilDIRE(self.device).to(self.device)
+            if self.only_eps:
+                self.student = DistilDIREOnlyEPS(self.device).to(self.device)
+            else:
+                self.student = DistilDIRE(self.device).to(self.device)
             __backbone = TVM.resnet50(weights=TVM.ResNet50_Weights.DEFAULT)
             self.teacher = nn.Sequential(OrderedDict([*(list(__backbone.named_children())[:-2])])) # drop last layer which is classifier
             self.teacher.eval().to(self.device)
@@ -112,7 +116,7 @@ class Trainer(BaseModel):
                 param.requires_grad = False
             self.kd_criterion = nn.MSELoss(reduction='mean')
         
-        self.cls_criterion = nn.BCEWithLogitsLoss()
+        self.cls_criterion = nn.BCEWithLogitsLoss(reduction='mean')
         
         # initialize optimizers
         if cfg.optim == "adam":
@@ -134,11 +138,7 @@ class Trainer(BaseModel):
             self.scheduler = GradualWarmupScheduler(
                 self.optimizer, multiplier=1, total_epoch=cfg.warmup_epoch, after_scheduler=scheduler_cosine
             )
-            self.scheduler.step()
-        
-        # AMP
-        self.scaler = torch.cuda.amp.grad_scaler.GradScaler()
-        
+            self.scheduler.step()        
 
     def adjust_learning_rate(self, min_lr=1e-6):
         for param_group in self.optimizer.param_groups:
@@ -166,7 +166,10 @@ class Trainer(BaseModel):
         if self.reproduce_dire:
             self.output = self.student(self.dire)
         else:
-            self.output = self.student(self.input, self.eps)
+            if self.only_eps:
+                self.output = self.student(self.eps)
+            else:
+                self.output = self.student(self.input, self.eps)
             with torch.no_grad():
                 self.teacher_feature = self.teacher(self.dire)
 
@@ -179,14 +182,13 @@ class Trainer(BaseModel):
         return loss
 
 
-    @torch.cuda.amp.autocast()
     def optimize_parameters(self):
         self.optimizer.zero_grad()
         self.forward()
         self.loss = self.get_loss(self.kd)
-        self.scaler.scale(self.loss).backward()
-        self.scaler.step(self.optimizer)
-        self.scaler.update()
+        self.loss.backward()
+        self.optimizer.step()
+
     
     
     def load_networks(self, model_path):

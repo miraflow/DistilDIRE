@@ -55,6 +55,7 @@ class DefaultConfigs(ABC):
     kd = True
     kd_weight = 1.
     reproduce_dire = False
+    only_eps = False
 
     @property
     def exp_name(self):
@@ -119,6 +120,7 @@ parser.add_argument("--lr", default=0.00001, type=float)
 parser.add_argument("--kd_weight", default=1., type=float)
 parser.add_argument("--test", default=False, type=str2bool)
 parser.add_argument("--reproduce_dire", default=False, type=str2bool)
+parser.add_argument("--only_eps", default=False, type=str2bool)
 parser.add_argument("--kd", default=True, type=str2bool)
 parser.add_argument("opts", default=[], nargs=argparse.REMAINDER)
 args = parser.parse_args()
@@ -161,6 +163,7 @@ cfg.dataset_root = os.path.join(root_dir, 'datasets', cfg.datasets)
 cfg.dataset_test_root = os.path.join(root_dir, 'datasets', cfg.datasets_test)
 cfg.kd = args.kd
 cfg.reproduce_dire = args.reproduce_dire
+cfg.only_eps = args.only_eps
 cfg.kd_weight = args.kd_weight
 
 # if isinstance(cfg.datasets, str):

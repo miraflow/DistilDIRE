@@ -32,6 +32,25 @@ class DistilDIRE(torch.nn.Module):
         logit = self.student_head(feature)
         return {'logit':logit, 'feature':feature}
     
+
+# ------------------------------------------------------------------------------
+class DistilDIREOnlyEPS(DistilDIRE):
+    def __init__(self, device):
+        super(DistilDIREOnlyEPS, self).__init__(device)
+        self.student_backbone.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        self.student_head = nn.Sequential(nn.AdaptiveAvgPool2d(1),
+                                          nn.Flatten(),
+                                          nn.Linear(2048, 1))
+        
+    def forward(self, eps):
+        eps = eps.to(self.device)
+    
+        feature = self.student_backbone(eps) 
+        logit = self.student_head(feature)
+        return {'logit':logit, 'feature':feature}
+
+
+# ------------------------------------------------------------------------------
 class DIRE(torch.nn.Module):
     def __init__(self, device):
         super(DIRE, self).__init__()
