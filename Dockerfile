@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/* 
 
 RUN pip install --no-cache-dir --upgrade pip
-RUN pip install torch==2.0.0+cu117 torchvision==0.15.1+cu117 -f https://download.pytorch.org/whl/torch_stable.html
+RUN pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 ADD requirements.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 WORKDIR /workspace

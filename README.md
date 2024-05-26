@@ -1,5 +1,5 @@
 # Distil-DIRE
-Distil-DIRE is a lightweight version of DIRE, which can be used for real-time applications. Instead of calculating DIRE image directly, Distl-DIRE aims to reconstruct the features of corresponding DIRE image forwared by a image-net pretrained classifier with one-step noise of DDIM inversion. 
+Distil-DIRE is a lightweight version of DIRE, which can be used for real-time applications. Instead of calculating DIRE image directly, Distl-DIRE aims to reconstruct the features of corresponding DIRE image forwared by a image-net pretrained classifier with one-step noise of DDIM inversion. ([Paper Link](https://arxiv.org/abs/2406.00856))
 ![overview](distil.png)
 
 ### Pretrained DistilDIRE Checkpoints
@@ -113,5 +113,12 @@ Our code is developed based on [DIRE](https://github.com/ZhendongWang6/DIRE), [g
 ## Citation
 If you find this work useful for your research, please cite our paper:
 ```
-TODO: arxiv the paper
+@misc{lim2024distildire,
+      title={DistilDIRE: A Small, Fast, Cheap and Lightweight Diffusion Synthesized Deepfake Detection}, 
+      author={Yewon Lim and Changyeon Lee and Aerin Kim and Oren Etzioni},
+      year={2024},
+      eprint={2406.00856},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV}
+}
 ```
