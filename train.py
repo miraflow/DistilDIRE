@@ -5,8 +5,8 @@ import torch
 
 def main(run, cfg):
     from torch.utils.data.distributed import DistributedSampler
-
     from utils.trainer import Trainer
+    
     if cfg.reproduce_dire:
         dataset = TMDireDataset(cfg.dataset_root)
         val_dataset = TMDireDataset(cfg.dataset_test_root)
