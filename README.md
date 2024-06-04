@@ -113,5 +113,12 @@ Our code is developed based on [DIRE](https://github.com/ZhendongWang6/DIRE), [g
 ## Citation
 If you find this work useful for your research, please cite our paper:
 ```
-TODO: arxiv the paper
+@misc{lim2024distildire,
+      title={DistilDIRE: A Small, Fast, Cheap and Lightweight Diffusion Synthesized Deepfake Detection}, 
+      author={Yewon Lim and Changyeon Lee and Aerin Kim and Oren Etzioni},
+      year={2024},
+      eprint={2406.00856},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV}
+}
 ```
