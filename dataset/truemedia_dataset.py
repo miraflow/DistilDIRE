@@ -55,7 +55,11 @@ class TMEPSOnlyDataset(TMDistilDireDataset):
         for img_path, dire_path, eps_path, isfake in self.img_paths:
             if not osp.exists(eps_path) or not osp.exists(img_path):
                 continue 
-            img_paths.append((img_path, dire_path, eps_path, isfake))
+            try:
+                eps = torch.load(eps_path, weights_only=True, mmap=True)
+                img_paths.append((img_path, dire_path, eps_path, isfake))
+            except:
+                continue
         self.img_paths = img_paths
 
     def __getitem__(self, idx):

@@ -148,7 +148,7 @@ class Trainer(BaseModel):
         return True
 
 
-    def set_input(self, input):
+    def set_input(self, input, istrain=True):
         if self.reproduce_dire:
             dire, label = input
             self.dire = dire.to(self.device)
@@ -159,16 +159,17 @@ class Trainer(BaseModel):
             H, W = img.shape[-2:]
             B = img.shape[0]
             # cutmix
-            if torch.rand(1) < 0.25:
-                x_l, x_r = sorted(torch.rand(2))
-                y_l, y_r = sorted(torch.rand(2))
-                x_l, x_r = int(x_l*W), int(x_r*W)
-                y_l, y_r = int(y_l*H), int(y_r*H)
+            if torch.rand(1) < 0.25 and istrain:
+                c_lambda = torch.rand(1)
+                r_x = torch.randint(0, W, (1,))
+                r_y = torch.randint(0, H, (1,))
+                r_w = int(torch.sqrt(1-c_lambda)*W)
+                r_h = int(torch.sqrt(1-c_lambda)*H)
 
-                img[:, :, y_l:y_r, x_l:x_r] = img[0:1, :, y_l:y_r, x_l:x_r].repeat(B, 1, 1, 1)
-                dire[:, :, y_l:y_r, x_l:x_r] = dire[0:1, :, y_l:y_r, x_l:x_r].repeat(B, 1, 1, 1)
-                eps[:, :, y_l:y_r, x_l:x_r] = eps[0:1, :, y_l:y_r, x_l:x_r].repeat(B, 1, 1, 1)
-
+                img[:, :, r_y:r_y+r_h, r_x:r_x+r_w] = img[0:1, :, r_y:r_y+r_h, r_x:r_x+r_w].repeat(B, 1, 1, 1)
+                dire[:, :, r_y:r_y+r_h, r_x:r_x+r_w] = dire[0:1, :, r_y:r_y+r_h, r_x:r_x+r_w].repeat(B, 1, 1, 1)
+                eps[:, :, r_y:r_y+r_h, r_x:r_x+r_w] = eps[0:1, :, r_y:r_y+r_h, r_x:r_x+r_w].repeat(B, 1, 1, 1)
+                label = c_lambda * label + (1-c_lambda) * label[0:1]
             self.input = img.to(self.device)
             self.dire = dire.to(self.device)
             self.eps = eps.to(self.device)
@@ -227,7 +228,7 @@ class Trainer(BaseModel):
         y_true = []
         N_FAKE, N_REAL = 0, 0
         for data, path in tqdm(self.val_loader, desc=f"Validation after {self.cur_epoch} epoch..."):
-            self.set_input(data)
+            self.set_input(data, istrain=False)
             self.forward()
             pred = self.output['logit'].sigmoid()
             
