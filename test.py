@@ -5,9 +5,10 @@ from utils.config import cfg
 def main(run, cfg):
     from utils.trainer import Trainer
     from torch.utils.data import DataLoader
-    from dataset import TMDistilDireDataset
-    
-    dataloader = DataLoader(TMDistilDireDataset(cfg.dataset_root), 
+    from dataset import TMEPSOnlyDataset
+    print(cfg.dataset_test_root)
+    dataset =TMEPSOnlyDataset(cfg.dataset_test_root, False)
+    dataloader = DataLoader(dataset, 
                             batch_size=1, 
                             shuffle=True, num_workers=2)
     trainer = Trainer(cfg, dataloader, dataloader, run, 0, False, 1)
