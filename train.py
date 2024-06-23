@@ -52,3 +52,4 @@ if __name__ == "__main__":
         run = wandb.init(project=f'dire-distill-truemedia', config=cfg, dir=cfg.exp_dir) 
     main(run, cfg)
     
+

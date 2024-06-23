@@ -49,18 +49,21 @@ class TMDistilDireDataset(Dataset):
 
 
 class TMEPSOnlyDataset(TMDistilDireDataset):
-    def __init__(self, root):
+    def __init__(self, root, istrain=True):
         super().__init__(root, prepared_dire=True)
         img_paths = []
         for img_path, dire_path, eps_path, isfake in self.img_paths:
             if not osp.exists(eps_path) or not osp.exists(img_path):
+                print(f"File not found: {eps_path} or {img_path}")
                 continue 
             try:
                 eps = torch.load(eps_path, weights_only=True, mmap=True)
                 img_paths.append((img_path, dire_path, eps_path, isfake))
-            except:
+            except Exception as e:
+                print(e)
                 continue
         self.img_paths = img_paths
+        self.istrain=istrain
 
     def __getitem__(self, idx):
        
@@ -70,7 +73,7 @@ class TMEPSOnlyDataset(TMDistilDireDataset):
         eps = torch.load(eps_path, weights_only=True, mmap=True)
         dire = torch.zeros_like(img)
     
-        if torch.rand(1) < 0.3:
+        if torch.rand(1) < 0.3 and self.istrain:
             img = TF.hflip(img)
             eps = TF.hflip(eps)
         

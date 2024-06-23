@@ -1,10 +1,10 @@
 ## set MODEL_PATH, num_samples, has_subfolder, images_dir, recons_dir, dire_dir
-DATA_ROOT=("/home/ubuntu/y1/y1-global-truemedia/train")
-SAVE_ROOT=("/home/ubuntu/y1/DistilDIRE/datasets/y1-global-truemedia/train")
+DATA_ROOT=("/truemedia-eval/")
+SAVE_ROOT=("/truemedia-eval/preprocess")
 
 MODEL_PATH="models/512x512-adm.pt" # imagenet pretrained adm (unconditional, 512x512)
 SAMPLE_FLAGS="--batch_size 4" # ddim20 is forced
-PREPROCESS_FLAGS="--compute_dire False --compute_eps False"
+PREPROCESS_FLAGS="--compute_dire False --compute_eps True"
 
 for i in 0 
 do
