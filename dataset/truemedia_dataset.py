@@ -13,10 +13,7 @@ class TMDistilDireDataset(Dataset):
         self.__fake_img_paths = [p for p in glob(osp.join(root, 'images/fakes/', '*')) if p.split('.')[-1].lower() in ['jpg', 'jpeg', 'png', 'webp']]
         self.__real_img_paths = [p for p in glob(osp.join(root, 'images/reals/', '*')) if p.split('.')[-1].lower() in ['jpg', 'jpeg', 'png', 'webp']]
         self.prepared_dire = prepared_dire
-        if self.prepared_dire:
-            self.transform = Compose([Resize(224), CenterCrop((224, 224))])
-        else:
-            self.transform = Compose([Resize(256), CenterCrop((256, 256))])
+        self.transform = Compose([Resize(512), CenterCrop((512, 512))])
         
 
         # (imgs, dire, eps, isfake)
@@ -49,7 +46,32 @@ class TMDistilDireDataset(Dataset):
             eps = torch.zeros_like(img)
 
         return (img, dire, eps, isfake), (img_path, dire_path, eps_path)
+
+
+class TMEPSOnlyDataset(TMDistilDireDataset):
+    def __init__(self, root):
+        super().__init__(root, prepared_dire=True)
+        img_paths = []
+        for img_path, dire_path, eps_path, isfake in self.img_paths:
+            if not osp.exists(eps_path) or not osp.exists(img_path):
+                continue 
+            img_paths.append((img_path, dire_path, eps_path, isfake))
+        self.img_paths = img_paths
+
+    def __getitem__(self, idx):
+       
+        img_path, dire_path, eps_path, isfake = self.img_paths[idx]
+        img = Image.open(img_path).convert('RGB')
+        img = TF.to_tensor(img)*2 - 1
+        eps = torch.load(eps_path, weights_only=True, mmap=True)
+        dire = torch.zeros_like(img)
     
+        if torch.rand(1) < 0.3:
+            img = TF.hflip(img)
+            eps = TF.hflip(eps)
+        
+        return (img, dire, eps, isfake), (img_path, dire_path, eps_path)
+        
     
 # This is for reproducing DIRE results
 class TMDireDataset(TMDistilDireDataset):

@@ -16,12 +16,13 @@ def diffusion_defaults():
         learn_sigma=False,
         diffusion_steps=1000,
         noise_schedule="linear",
-        timestep_respacing="ddim20",
+        timestep_respacing="",
         use_kl=False,
         predict_xstart=False,
         rescale_timesteps=False,
         rescale_learned_sigmas=False,
     )
+
 
 
 def classifier_defaults():
@@ -38,7 +39,6 @@ def classifier_defaults():
         classifier_resblock_updown=True,  # False
         classifier_pool="attention",
     )
-
 
 def model_and_diffusion_defaults():
     """
@@ -63,6 +63,7 @@ def model_and_diffusion_defaults():
     )
     res.update(diffusion_defaults())
     return res
+
 
 
 def classifier_and_diffusion_defaults():
