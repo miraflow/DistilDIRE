@@ -10,6 +10,9 @@ def main(run, cfg):
     if cfg.reproduce_dire:
         dataset = TMDireDataset(cfg.dataset_root)
         val_dataset = TMDireDataset(cfg.dataset_test_root)
+    elif cfg.only_eps:
+        dataset = TMEPSOnlyDataset(cfg.dataset_root)
+        val_dataset = TMEPSOnlyDataset(cfg.dataset_root)
     else:
         dataset= TMDistilDireDataset(cfg.dataset_root)
         val_dataset = TMDistilDireDataset(cfg.dataset_test_root)
@@ -36,7 +39,7 @@ if __name__ == "__main__":
     import wandb
     
     from torch.utils.data import DataLoader
-    from dataset import TMDistilDireDataset, TMDireDataset
+    from dataset import TMDistilDireDataset, TMDireDataset, TMEPSOnlyDataset
     
     dist.init_process_group(backend='nccl', init_method='env://')
     local_rank = int(os.environ['LOCAL_RANK']) 

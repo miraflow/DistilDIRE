@@ -13,11 +13,11 @@ Distil-DIRE is a lightweight version of DIRE, which can be used for real-time ap
 
 ## Pretrained ADM diffusion model
 We use image-net pretrained unconditional ADM diffusion model for feature reconstruction. You can download the pretrained model from the following link:
-https://openaipublic.blob.core.windows.net/diffusion/jul-2021/256x256_diffusion_uncond.pt
+https://openaipublic.blob.core.windows.net/diffusion/jul-2021/512x512_diffusion.pt
 
 or you can use the following script to download the model:
 ```bash
-wget https://openaipublic.blob.core.windows.net/diffusion/jul-2021/256x256_diffusion_uncond.pt -O models/256x256-adm.pt
+wget https://openaipublic.blob.core.windows.net/diffusion/jul-2021/512x512_diffusion.pt -O models/512x512-adm.pt
 ```
 
 ## Data Preparation

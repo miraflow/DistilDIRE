@@ -156,6 +156,19 @@ class Trainer(BaseModel):
             
         else:
             img, dire, eps, label = input # if len(input) == 3 else (input[0], input[1], {})
+            H, W = img.shape[-2:]
+            B = img.shape[0]
+            # cutmix
+            if torch.rand(1) < 0.25:
+                x_l, x_r = sorted(torch.rand(2))
+                y_l, y_r = sorted(torch.rand(2))
+                x_l, x_r = int(x_l*W), int(x_r*W)
+                y_l, y_r = int(y_l*H), int(y_r*H)
+
+                img[:, :, y_l:y_r, x_l:x_r] = img[0:1, :, y_l:y_r, x_l:x_r].repeat(B, 1, 1, 1)
+                dire[:, :, y_l:y_r, x_l:x_r] = dire[0:1, :, y_l:y_r, x_l:x_r].repeat(B, 1, 1, 1)
+                eps[:, :, y_l:y_r, x_l:x_r] = eps[0:1, :, y_l:y_r, x_l:x_r].repeat(B, 1, 1, 1)
+
             self.input = img.to(self.device)
             self.dire = dire.to(self.device)
             self.eps = eps.to(self.device)

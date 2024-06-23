@@ -5,7 +5,8 @@ Modified from guided-diffusion/scripts/image_sample.py
 import argparse
 import os
 import torch
-
+from PIL import ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 from dataset import TMDistilDireDataset
 from torch.utils.data import DataLoader
 import cv2
@@ -48,7 +49,6 @@ def create_argparser():
         clip_denoised=True,
         num_samples=-1,
         use_ddim=True,
-        model_path="./256x256-adm.pt",
         real_step=0,
         continue_reverse=False,
         has_subfolder=False,
@@ -56,11 +56,11 @@ def create_argparser():
     defaults.update(model_and_diffusion_defaults())
     sanic_dict = dict(
        attention_resolutions='32,16,8',
-       class_cond=False,
+       class_cond=True,
        diffusion_steps=1000,
-       dropout=0.1,
-       image_size=256,
+       image_size=512,
        learn_sigma=True,
+       model_path="./512x512-adm.pt",
        noise_schedule='linear',
        num_channels=256,
        num_head_channels=64,
@@ -169,6 +169,8 @@ if __name__ == "__main__":
     adm_args = create_argparser()
     adm_args['timestep_respacing'] = 'ddim20'
     adm_model, diffusion = create_model_and_diffusion(**dict_parse(adm_args, model_and_diffusion_defaults().keys()))
+    print(f"checkpoint: {adm_args['model_path']}")
+    print(f"model channel: {adm_args['num_channels']}, {adm_model.model_channels}")
     adm_model.load_state_dict(torch.load(adm_args['model_path'], map_location="cpu"))
     adm_model.to(device)
 
@@ -186,7 +188,6 @@ if __name__ == "__main__":
     os.makedirs(osp.join(adm_args['save_root'], 'eps', 'reals'), exist_ok=True)
     print(f"Dataset length: {len(dataset)}")
     dataloader = DataLoader(dataset, batch_size=adm_args['batch_size'], num_workers=2, drop_last=False, sampler=sampler)
-    transform = transforms.Compose([transforms.Resize(224), transforms.CenterCrop((224, 224))])
 
     for (img_batch, dire_batch, eps_batch, isfake_batch), (img_pathes, dire_pathes, eps_pathes) in tqdm(dataloader):
         haveall=True 
@@ -204,14 +205,15 @@ if __name__ == "__main__":
             continue
         with torch.no_grad():
             eps = None
+            img = (img_batch.detach().cpu()+1)*0.5
             if adm_args['compute_eps']:
                 eps = dire_get_first_step_noise(img_batch, adm_model, diffusion, adm_args, device)
-                eps = transform(eps).detach().cpu()
+                eps = eps.detach().cpu()
 
             if adm_args['compute_dire']:
                 dire_img, img, recons = dire(img_batch, adm_model, diffusion, adm_args)
-                dire_img = transform(dire_img).detach().cpu()
-                img = transform(img).detach().cpu()
+                dire_img = dire_img.detach().cpu()
+                img = img.detach().cpu()
             
             for i in range(len(img_batch)):
                 basename = osp.basename(img_pathes[i])
@@ -223,7 +225,7 @@ if __name__ == "__main__":
                 
                 if not osp.exists(img_path):
                     torchvision.utils.save_image(img[i], img_path)
-                if not osp.exists(dire_path):
+                if not osp.exists(dire_path) and adm_args['compute_dire']:
                     torchvision.utils.save_image(dire_img[i], dire_path)
                 if not osp.exists(eps_path) and eps is not None:
                     torch.save(eps[i], eps_path)
