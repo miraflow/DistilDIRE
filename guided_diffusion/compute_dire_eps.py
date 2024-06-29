@@ -187,7 +187,7 @@ if __name__ == "__main__":
     os.makedirs(osp.join(adm_args['save_root'], 'eps', 'fakes'), exist_ok=True)
     os.makedirs(osp.join(adm_args['save_root'], 'eps', 'reals'), exist_ok=True)
     print(f"Dataset length: {len(dataset)}")
-    dataloader = DataLoader(dataset, batch_size=adm_args['batch_size'], num_workers=2, drop_last=False, sampler=sampler)
+    dataloader = DataLoader(dataset, batch_size=adm_args['batch_size'], num_workers=4, drop_last=False, sampler=sampler, pin_memory=True)
 
     for (img_batch, dire_batch, eps_batch, isfake_batch), (img_pathes, dire_pathes, eps_pathes) in tqdm(dataloader):
         haveall=True 
