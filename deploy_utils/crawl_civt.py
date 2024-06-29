@@ -2,7 +2,7 @@ import os
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
-from urllib.request import urlretrieve
+import urllib.request
 from tqdm.auto import tqdm
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -26,15 +26,15 @@ def fetch_images(url, cls_name):
     driver = webdriver.Chrome(options=options)
     driver.get(url)
     time.sleep(5)
-    last_hegiht = driver.execute_script("return document.body.scrollHeight")
+    last_height = driver.execute_script("return document.getElementsByClassName('mantine-1ef2bnv')[0].scrollHeight")
 
     while True :
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        driver.execute_script("window.scrollTo(0, document.getElementsByClassName('mantine-1ef2bnv')[0].scrollHeight;")
         time.sleep(2)
-        new_height = driver.execute_script("return document.body.scrollHeight")
-        if new_height == last_hegiht:
+        new_height = driver.execute_script("return document.getElementsByClassName('mantine-1ef2bnv')[0].scrollHeight")
+        if new_height == last_height:
             break
-        last_hegiht = new_height
+        last_height = new_height
         
     img_elements = driver.find_elements(By.CLASS_NAME, cls_name)
     urls = []
@@ -48,17 +48,24 @@ def fetch_images(url, cls_name):
 def download_images(img_urls, download_folder='downloaded_images', desc=""):
     if not os.path.exists(download_folder):
         os.makedirs(download_folder)
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
 
     for img_url in tqdm(img_urls, desc=desc):
         fname = img_url.split('/')[-1]
         fname = fname.split('?')[0]
         filename = os.path.join(download_folder, fname)
-        urlretrieve(img_url, filename)
-        print(f"Downloaded: {filename}")
+        if os.path.exists(filename):
+            continue
+        req = urllib.request.Request(img_url, headers=headers)
+        with urllib.request.urlopen(req) as response, open(filename, 'wb') as out_file:
+            data = response.read()
+            out_file.write(data)
+
+
 
 def crawl(query):
     url = f'https://civitai.com/search/images?sortBy=images_v6%3Astats.reactionCountAllTime%3Adesc&query={query}'
-    cls_name = "__mantine-ref-image mantine-deph6u"
+    cls_name = "__mantine-ref-image.mantine-deph6u"
     download_path = "/truemedia-eval/crawled-fakes/images/fakes"
     try:
         img_urls = fetch_images(url, cls_name)
