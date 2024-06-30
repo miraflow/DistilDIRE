@@ -13,6 +13,14 @@ from utils.config import CONFIGCLASS
 from networks.distill_model import DistilDIRE, DIRE, DistilDIREOnlyEPS
 from utils.warmup import GradualWarmupScheduler
 import os.path as osp
+from guided_diffusion.compute_dire_eps import dire_get_first_step_noise, create_dicts_for_static_init
+from guided_diffusion.guided_diffusion.script_util import (
+                model_and_diffusion_defaults,
+                create_model_and_diffusion,
+                add_dict_to_argparser,
+                dict_parse,
+                args_to_dict,
+)
 
 
 class BaseModel(nn.Module):
@@ -84,6 +92,7 @@ class Trainer(BaseModel):
         self.arch = cfg.arch
         self.reproduce_dire = cfg.reproduce_dire
         self.only_eps = cfg.only_eps
+        self.only_img = cfg.only_img
         self.test_name = osp.basename(cfg.dataset_test_root)
         self.rank = rank
         self.device = torch.device(f"cuda") 
@@ -100,12 +109,22 @@ class Trainer(BaseModel):
         
         # wandb logger (pass if None)
         self.run = run
-        
+        self.adm = None
         if self.reproduce_dire:
             self.student = DIRE(self.device).to(self.device)
         else: 
-            if self.only_eps:
+            if self.only_eps or self.only_img:
                 self.student = DistilDIREOnlyEPS(self.device).to(self.device)
+                if self.only_img:
+                    adm_args = create_dicts_for_static_init()
+                    adm_args['timestep_respacing'] = 'ddim20'
+                    adm_model, diffusion = create_model_and_diffusion(**dict_parse(adm_args, model_and_diffusion_defaults().keys()))
+                    adm_model.load_state_dict(torch.load(adm_args['model_path'], map_location="cpu"))
+                    self.adm = adm_model
+                    self.adm.to(self.device)
+                    self.adm.eval()
+                    self.diffusion = diffusion
+                    self.adm_args = adm_args
             else:
                 self.student = DistilDIRE(self.device).to(self.device)
             __backbone = TVM.resnet50(weights=TVM.ResNet50_Weights.DEFAULT)
@@ -116,7 +135,7 @@ class Trainer(BaseModel):
                 param.requires_grad = False
             self.kd_criterion = nn.MSELoss(reduction='mean')
         
-        self.cls_criterion = nn.BCEWithLogitsLoss(reduction='mean')
+        self.cls_criterion = nn.BCEWithLogitsLoss(reduction='mean', pos_weight=torch.tensor(10))
         
         # initialize optimizers
         if cfg.optim == "adam":
@@ -158,6 +177,13 @@ class Trainer(BaseModel):
             img, dire, eps, label = input # if len(input) == 3 else (input[0], input[1], {})
             H, W = img.shape[-2:]
             B = img.shape[0]
+
+            # only-img
+            if self.only_img:
+                img = img.to(self.device)
+                # calc eps from img
+                eps = dire_get_first_step_noise(img, self.adm, self.diffusion, self.adm_args, self.device)
+
             # cutmix
             if torch.rand(1) < 0.25 and istrain:
                 c_lambda = torch.rand(1)
@@ -180,7 +206,7 @@ class Trainer(BaseModel):
         if self.reproduce_dire:
             self.output = self.student(self.dire)
         else:
-            if self.only_eps:
+            if self.only_eps or self.only_img:
                 self.output = self.student(self.eps)
             else:
                 self.output = self.student(self.input, self.eps)

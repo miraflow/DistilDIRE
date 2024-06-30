@@ -27,16 +27,16 @@ def fetch_images(url):
     driver.set_window_size(1400, 1500)
     driver.get(url)
     time.sleep(5)
-    last_height = driver.execute_script("return document.getElementsByClassName('mantine-1ef2bnv')[0].scrollHeight")
+    last_height = driver.execute_script("return document.scrollingElement.scrollHeight")
     urls = []
     while True :
         # img_elements = driver.find_elements(By.CLASS_NAME, cls_name)
         img_elements = driver.find_elements(By.TAG_NAME, 'img')
         for img in img_elements:
             urls.append(img.get_attribute('src') or img.get_attribute('data-src'))
-        driver.execute_script(f"document.getElementsByClassName('mantine-1ef2bnv')[0].scrollTo(0, document.getElementsByClassName('mantine-1ef2bnv')[0].scrollHeight);")
-        time.sleep(3)
-        new_height = driver.execute_script("return document.getElementsByClassName('mantine-1ef2bnv')[0].scrollHeight")
+        driver.execute_script(f"document.scrollingElement.scrollTo(0, document.scrollingElement.scrollHeight);")
+        time.sleep(5)
+        new_height = driver.execute_script("return document.scrollingElement.scrollHeight")
         print(f"last_height: {last_height}, new_height: {new_height}")
         if new_height == last_height:
             break

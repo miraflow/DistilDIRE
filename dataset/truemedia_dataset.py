@@ -48,7 +48,7 @@ class TMDistilDireDataset(Dataset):
 
         comp = fsize/(w*h)
         comp_quality = min(TARGET_COMP/comp * 100, 100)
-        
+        comp_quality = max(comp_quality, 1)
         img = decode_jpeg(encode_jpeg(img, quality=int(comp_quality))) 
         img = img / 255.
         # img = TF.to_tensor(img)*2 - 1
@@ -67,6 +67,27 @@ class TMDistilDireDataset(Dataset):
             eps = torch.zeros_like(img)
 
         return (img, dire, eps, isfake), (img_path, dire_path, eps_path)
+
+
+
+class TMIMGOnlyDataset(TMDistilDireDataset):
+    def __init__(self, root, istrain=True):
+        super().__init__(root, prepared_dire=True)
+        self.istrain=istrain
+
+    def __getitem__(self, idx):
+       
+        img_path, dire_path, eps_path, isfake = self.img_paths[idx]
+        img = Image.open(img_path).convert('RGB')
+        img = TF.to_tensor(img)*2 - 1
+        eps = torch.zeros_like(img)
+        dire = torch.zeros_like(img)
+    
+        if torch.rand(1) < 0.3 and self.istrain:
+            img = TF.hflip(img)
+        return (img, dire, eps, isfake), (img_path, dire_path, eps_path)
+        
+  
 
 
 class TMEPSOnlyDataset(TMDistilDireDataset):

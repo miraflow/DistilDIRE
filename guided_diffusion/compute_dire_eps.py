@@ -81,6 +81,41 @@ def create_argparser():
 
     return args_to_dict(args, list(defaults.keys()))
 
+def create_dicts_for_static_init():
+    defaults = dict(
+        clip_denoised=True,
+        num_samples=-1,
+        use_ddim=True,
+        real_step=0,
+        continue_reverse=False,
+        has_subfolder=False,
+    )
+    defaults.update(model_and_diffusion_defaults())
+    sanic_dict = dict(
+       attention_resolutions='32,16,8',
+       class_cond=True,
+       diffusion_steps=1000,
+       image_size=512,
+       learn_sigma=True,
+       model_path="./models/512x512-adm.pt",
+       noise_schedule='linear',
+       num_channels=256,
+       num_head_channels=64,
+       num_res_blocks=2,
+       resblock_updown=True,
+       use_fp16=False,
+       use_scale_shift_norm=True,
+       data_root="",
+       compute_dire=False,
+       compute_eps=False,
+       save_root="",
+       batch_size=32,
+    )
+    defaults.update(sanic_dict)
+
+    return defaults
+
+
 
 @torch.no_grad()
 def dire(img_batch:torch.Tensor, model, diffusion, args, save_img=False, save_path=None):
