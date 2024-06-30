@@ -1,5 +1,5 @@
 ## set MODEL_PATH, num_samples, has_subfolder, images_dir, recons_dir, dire_dir
-DATA_ROOT=("/truemedia-eval/instagram")
+DATA_ROOT=("/truemedia-eval/crawled-fakes")
 SAVE_ROOT=("/truemedia-eval/y1dataset")
 
 MODEL_PATH="models/512x512-adm.pt" # imagenet pretrained adm (unconditional, 512x512)

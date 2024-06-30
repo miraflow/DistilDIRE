@@ -52,6 +52,7 @@ def main():
     while True:
         page_n += 1
         url = f'https://www.freepik.com/search?ai=only&format=search&last_filter=page&last_value={page_n}&page={page_n}&query=people%2C+political'
+        url = f'https://app.all-images.ai/en/f/images/search?pageIndex={page_n}&pageSize=40&search=man'
         cls_name = "_1286nb17"
         download_path = "/truemedia-eval/crawled-fakes/images/fakes"
         try:

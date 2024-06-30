@@ -10,7 +10,7 @@ from selenium.webdriver.common.by import By
 import time
 
 # Function to fetch and parse the webpage
-def fetch_images(url, cls_name):
+def fetch_images(url):
     options = Options()
     options.add_argument("--headless")
     options.add_argument("window-size=1400,1500")
@@ -24,23 +24,27 @@ def fetch_images(url, cls_name):
     options.add_argument(f"user-agent={user_agent}")
 
     driver = webdriver.Chrome(options=options)
+    driver.set_window_size(1400, 1500)
     driver.get(url)
     time.sleep(5)
     last_height = driver.execute_script("return document.getElementsByClassName('mantine-1ef2bnv')[0].scrollHeight")
-
+    urls = []
     while True :
-        driver.execute_script("window.scrollTo(0, document.getElementsByClassName('mantine-1ef2bnv')[0].scrollHeight;")
-        time.sleep(2)
+        # img_elements = driver.find_elements(By.CLASS_NAME, cls_name)
+        img_elements = driver.find_elements(By.TAG_NAME, 'img')
+        for img in img_elements:
+            urls.append(img.get_attribute('src') or img.get_attribute('data-src'))
+        driver.execute_script(f"document.getElementsByClassName('mantine-1ef2bnv')[0].scrollTo(0, document.getElementsByClassName('mantine-1ef2bnv')[0].scrollHeight);")
+        time.sleep(3)
         new_height = driver.execute_script("return document.getElementsByClassName('mantine-1ef2bnv')[0].scrollHeight")
+        print(f"last_height: {last_height}, new_height: {new_height}")
         if new_height == last_height:
             break
+            
         last_height = new_height
-        
-    img_elements = driver.find_elements(By.CLASS_NAME, cls_name)
-    urls = []
-    for img in img_elements:
-        src_url = img.get_attribute('src')
-        urls.append(src_url)
+    
+    print(f"Total images: {len(urls)}")
+    
     return urls
 
 
@@ -64,11 +68,10 @@ def download_images(img_urls, download_folder='downloaded_images', desc=""):
 
 
 def crawl(query):
-    url = f'https://civitai.com/search/images?sortBy=images_v6%3Astats.reactionCountAllTime%3Adesc&query={query}'
-    cls_name = "__mantine-ref-image.mantine-deph6u"
+    url = f'https://openart.ai/search/{query}?method=similarity'
     download_path = "/truemedia-eval/crawled-fakes/images/fakes"
     try:
-        img_urls = fetch_images(url, cls_name)
+        img_urls = fetch_images(url)
         if len(img_urls) == 0:
             return
         download_images(img_urls, download_path, desc=f"query: {query}")
@@ -77,7 +80,21 @@ def crawl(query):
 
 # Main function to coordinate the image crawling
 def main():
-    queries = ['xi', 'trump', 'biden', 'putin', 'zelensky', 'gaza', 'israel', 'taylor', 'palesti', 'nsfw', 'instagram']
+    # queries = ['xi', 'trump', 'biden', 'putin', 'zelensky', 'gaza', 'israel', 'taylor', 'palesti', 'nsfw', 'instagram']
+    queries = ['xi', 'trump', 'biden', 'putin', 'zelensky', 'gaza', 'israel', 'taylor', 'palesti', 'nsfw', 'instagram',
+    "Hamas", "Hezbollah", "Iran",
+    "North Korea", "Kim Jong-un", "Uyghurs", "Hong Kong", "Taiwan", "Tibet", "Kashmir", "Syria", "Assad", "ISIS",
+    "Taliban", "Afghanistan", "Saudi", "Yemen", "Qatar", "Brexit", "Catalonia", "Black lives matter", "Antifa", "Proud Boys",
+    "Abortion", "Guns", "Second Amendment", "Police", "Execution", "Drugs", "Opioids", "Climate", "Paris",
+    "Green", "Keystone", "Fracking", "GMOs", "Net", "WikiLeaks", "Assange", "Snowden", "NSA", "Patriot",
+    "COVID", "Vaccines", "Masks", "5G", "QAnon", "Fraud", "Capitol", "Impeachment", "Hunter", "Epstein",
+    "Trafficking", "MeToo", "Weinstein", "Cancel", "Race", "Affirmative", "Transgender", "Marriage",
+    "Religion", "Nationalism", "Neo-Nazism", "Confederate", "Antisemitism", "Islamophobia", "Wall", "ICE",
+    "DACA", "Dreamers", "Separation", "Sanctuary", "Refugees", "Travel", "Benghazi", "Emails", "Russia",
+    "Mueller", "Ukraine", "Mar-a-Lago", "Taxes", "Emoluments", "Gerrymandering", "Voter", "Mail", "Citizens",
+    "PACs", "Breonna", "Floyd", "Rittenhouse", "Insurrection", "Ivanka", "Kushner", "Bannon", "Flynn", "Stone"
+]
+
     for query in queries:
         crawl(query)
     
