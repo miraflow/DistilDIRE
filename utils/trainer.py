@@ -119,6 +119,7 @@ class Trainer(BaseModel):
                     adm_args['timestep_respacing'] = 'ddim20'
                     adm_model, diffusion = create_model_and_diffusion(**dict_parse(adm_args, model_and_diffusion_defaults().keys()))
                     adm_model.load_state_dict(torch.load(adm_args['model_path'], map_location="cpu"))
+                    print("ADM model loaded...")
                     self.adm = adm_model
                     self.adm.convert_to_fp16()
                     self.adm.to(self.device)
@@ -127,7 +128,7 @@ class Trainer(BaseModel):
                     self.adm_args = adm_args
             else:
                 self.student = DistilDIRE(self.device).to(self.device)
-            self.student.convert_to_fp16_student()
+            # self.student.convert_to_fp16_student()
             __backbone = TVM.resnet50(weights=TVM.ResNet50_Weights.DEFAULT)
             self.teacher = nn.Sequential(OrderedDict([*(list(__backbone.named_children())[:-2])])) # drop last layer which is classifier
             self.teacher.eval().to(self.device)

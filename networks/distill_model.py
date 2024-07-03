@@ -23,10 +23,8 @@ class DistilDIRE(torch.nn.Module):
     
     def convert_to_fp16_student(self):
         self.student_backbone.apply(convert_module_to_f16)
-        self.student_head.apply(convert_module_to_f16)
     
-    
-        
+
     def forward(self, img, eps):
         img = img.to(self.device)
         eps = eps.to(self.device)
@@ -50,8 +48,7 @@ class DistilDIREOnlyEPS(DistilDIRE):
         
     def forward(self, eps):
         eps = eps.to(self.device)
-    
-        feature = self.student_backbone(eps) 
+        feature = self.student_backbone(eps)
         logit = self.student_head(feature)
         return {'logit':logit, 'feature':feature}
 
