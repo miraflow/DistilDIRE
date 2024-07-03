@@ -6,6 +6,7 @@ from torchvision.io import decode_jpeg, encode_jpeg
 from glob import glob
 import os.path as osp
 from PIL import Image
+import random
 import os 
 TARGET_COMP = 0.1
 
@@ -15,7 +16,7 @@ class TMDistilDireDataset(Dataset):
         self.__fake_img_paths = [p for p in glob(osp.join(root, 'images/fakes/', '*')) if p.split('.')[-1].lower() in ['jpg', 'jpeg', 'png', 'webp']]
         self.__real_img_paths = [p for p in glob(osp.join(root, 'images/reals/', '*')) if p.split('.')[-1].lower() in ['jpg', 'jpeg', 'png', 'webp']]
         self.prepared_dire = prepared_dire
-        self.transform = Compose([Resize(512), CenterCrop((512, 512))])
+        self.transform = Compose([Resize(256), CenterCrop((256, 256))])
         
 
         # (imgs, dire, eps, isfake)
@@ -25,15 +26,20 @@ class TMDistilDireDataset(Dataset):
         else:
             self.fake_paths = list(map(lambda x: (x, "", "", True), self.__fake_img_paths))
             self.real_paths = list(map(lambda x: (x, "", "", False), self.__real_img_paths))
+        random.shuffle(self.fake_paths)
+        random.shuffle(self.real_paths)
         self.img_paths = self.fake_paths + self.real_paths
-        img_paths = []
-        for img_path, dire_path, eps_path, isfake in self.img_paths:
-            try:
-                Image.open(img_path)
-                img_paths.append((img_path, dire_path, eps_path, isfake))
-            except:
-                continue
-        self.img_paths = img_paths
+        if len(self.real_paths) > len(self.fake_paths) * 3:
+            self.img_paths = self.fake_paths + self.real_paths[:len(self.fake_paths) * 3]
+            
+        # img_paths = []
+        # for img_path, dire_path, eps_path, isfake in self.img_paths:
+        #     try:
+        #         Image.open(img_path)
+        #         img_paths.append((img_path, dire_path, eps_path, isfake))
+        #     except:
+        #         continue
+        # self.img_paths = img_paths
 
     def __len__(self):
         return len(self.img_paths)

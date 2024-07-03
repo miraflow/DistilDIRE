@@ -22,7 +22,6 @@ from guided_diffusion.guided_diffusion.script_util import (
                 args_to_dict,
 )
 
-
 class BaseModel(nn.Module):
     def __init__(self, cfg: CONFIGCLASS):
         super().__init__()
@@ -121,12 +120,14 @@ class Trainer(BaseModel):
                     adm_model, diffusion = create_model_and_diffusion(**dict_parse(adm_args, model_and_diffusion_defaults().keys()))
                     adm_model.load_state_dict(torch.load(adm_args['model_path'], map_location="cpu"))
                     self.adm = adm_model
+                    self.adm.convert_to_fp16()
                     self.adm.to(self.device)
                     self.adm.eval()
                     self.diffusion = diffusion
                     self.adm_args = adm_args
             else:
                 self.student = DistilDIRE(self.device).to(self.device)
+            self.student.convert_to_fp16_student()
             __backbone = TVM.resnet50(weights=TVM.ResNet50_Weights.DEFAULT)
             self.teacher = nn.Sequential(OrderedDict([*(list(__backbone.named_children())[:-2])])) # drop last layer which is classifier
             self.teacher.eval().to(self.device)
@@ -135,7 +136,7 @@ class Trainer(BaseModel):
                 param.requires_grad = False
             self.kd_criterion = nn.MSELoss(reduction='mean')
         
-        self.cls_criterion = nn.BCEWithLogitsLoss(reduction='mean', pos_weight=torch.tensor(10))
+        self.cls_criterion = nn.BCEWithLogitsLoss(reduction='mean')
         
         # initialize optimizers
         if cfg.optim == "adam":
@@ -185,7 +186,7 @@ class Trainer(BaseModel):
                 eps = dire_get_first_step_noise(img, self.adm, self.diffusion, self.adm_args, self.device)
 
             # cutmix
-            if torch.rand(1) < 0.25 and istrain:
+            if torch.rand(1) < 0.3 and istrain:
                 c_lambda = torch.rand(1)
                 r_x = torch.randint(0, W, (1,))
                 r_y = torch.randint(0, H, (1,))
