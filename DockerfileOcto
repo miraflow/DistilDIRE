@@ -13,6 +13,7 @@ ADD requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 ADD guided_diffusion/ /app/guided_diffusion
+ADD dataset/ /app/dataset
 ADD networks/ /app/networks
 ADD utils/ /app/utils
 ADD models /app/models

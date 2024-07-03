@@ -5,6 +5,7 @@ imageio
 ipympl
 cmake==3.28.3
 dlib==19.24.2
+decord
 face_recognition
 matplotlib
 numpy
