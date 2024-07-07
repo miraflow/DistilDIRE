@@ -127,19 +127,22 @@ class CustomModel:
 
     def _forward_dire_img(self, img_path, save_dire=True, thr=0.5):
         img = Image.open(img_path).convert("RGB")
-        # w, h = img.size
-        # fsize = os.stat(img_path).st_size
-        # img = (TF.to_tensor(img)*255).to(torch.uint8)
+        w, h = img.size
+        fsize = os.stat(img_path).st_size
 
-        # comp = fsize/(w*h)
-        # comp_quality = min(0.1/comp * 100, 100)
-        # comp_quality = max(comp_quality, 1)
-        # img = decode_jpeg(encode_jpeg(img, quality=int(comp_quality)))
-        # IMG = TF.to_pil_image(img)
-        # IMG.save("compressed.jpg")
-        # img = img / 255.
-        # print(comp_quality)
-        img = TF.to_tensor(img)
+        img = (TF.to_tensor(img)*255).to(torch.uint8)
+
+        comp = fsize/(w*h)
+        comp_quality = min(0.1/comp * 100, 100)
+        comp_quality = max(comp_quality, 1)
+        img = decode_jpeg(encode_jpeg(img, quality=int(comp_quality))) 
+        
+        img = Compose([Resize(512, antialias='True'), CenterCrop((512, 512))])(img)
+        img = decode_jpeg(encode_jpeg(img, quality=75))
+        img = img / 255.
+
+        IMG = TF.to_pil_image(img)
+        IMG.save("compressed.jpg")
         img = self.trans(img).cuda() * 2 - 1
         print(f"Min: {img.min()}, Max: {img.max()}")
         img = img.unsqueeze(0)
