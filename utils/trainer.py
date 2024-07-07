@@ -4,7 +4,7 @@ import torch.nn as nn
 
 import torchvision.models as TVM
 from collections import OrderedDict
-from sklearn.metrics import accuracy_score, average_precision_score
+from sklearn.metrics import accuracy_score, average_precision_score, precision_score
 import torch.distributed as dist
 from tqdm.auto import tqdm
 import numpy as np
@@ -281,14 +281,15 @@ class Trainer(BaseModel):
         y_true, y_pred = np.array(y_true), np.array(y_pred)
         acc = accuracy_score(y_true, y_pred > 0.5)
         ap = average_precision_score(y_true, y_pred)
+        precision = precision_score(y_true, y_pred > 0.5)
         if self.run:
-            self.run.log({"val_acc": acc, "val_ap": ap})
+            self.run.log({"val_acc": acc, "val_ap": ap , "val_precision": precision})
             self.run.log({"N_FAKE": N_FAKE, "N_REAL": N_REAL})
-        print(f"Validation: acc: {acc}, ap: {ap}")
+        print(f"Validation: acc: {acc}, ap: {ap}, precision: {precision}")
         print(f"N_FAKE: {N_FAKE}, N_REAL: {N_REAL}")
         if save:
             with open(save_name, "w") as f:
-                f.write(f"Validation: acc: {acc}, ap: {ap}")
+                f.write(f"Validation: acc: {acc}, ap: {ap}, precision: {precision}\n")
                 f.write(f"N_FAKE: {N_FAKE}, N_REAL: {N_REAL}")
         
         

@@ -5,6 +5,7 @@ from datetime import datetime
 import torchvision.transforms as transforms
 from torchvision.utils import save_image
 import torchvision.transforms.functional as TF
+from torchvision.transforms import Compose, Resize, CenterCrop
 from torchvision.io import decode_jpeg, encode_jpeg
 
 
@@ -41,6 +42,10 @@ def download_file(input_path):
         # Ensure the filename does not contain query parameters if present in the URL
         # Splits the filename by '?' and get the first part
         filename = filename.split('?')[0]
+
+        # put jpg extension if not present
+        if '.' not in filename:
+            filename += ".jpg"
 
         # Define the local path where the file will be saved
         local_filepath = os.path.join('.', filename)
@@ -120,19 +125,24 @@ class CustomModel:
         print("The model is successfully loaded")
 
 
-    def _forward_dire_img(self, img_path, save_dire=True, thr=0.4):
+    def _forward_dire_img(self, img_path, save_dire=True, thr=0.5):
         img = Image.open(img_path).convert("RGB")
-        w, h = img.size
-        fsize = os.stat(img_path).st_size
-        img = (TF.to_tensor(img)*255).to(torch.uint8)
-        comp = fsize/(w*h)
-        comp_quality = min(0.1/comp * 100, 100)
-        comp_quality = max(comp_quality, 1)
-        img = decode_jpeg(encode_jpeg(img, quality=int(comp_quality)))
-        img = img / 255.
-        img = img.unsqueeze(0)
+        # w, h = img.size
+        # fsize = os.stat(img_path).st_size
+        # img = (TF.to_tensor(img)*255).to(torch.uint8)
+
+        # comp = fsize/(w*h)
+        # comp_quality = min(0.1/comp * 100, 100)
+        # comp_quality = max(comp_quality, 1)
+        # img = decode_jpeg(encode_jpeg(img, quality=int(comp_quality)))
+        # IMG = TF.to_pil_image(img)
+        # IMG.save("compressed.jpg")
+        # img = img / 255.
+        # print(comp_quality)
+        img = TF.to_tensor(img)
         img = self.trans(img).cuda() * 2 - 1
-        
+        print(f"Min: {img.min()}, Max: {img.max()}")
+        img = img.unsqueeze(0)
         with torch.no_grad():
             eps = dire_get_first_step_noise(img, self.adm_model, self.diffusion, self.args, "cuda")
             prob = self.model(eps)['logit'].sigmoid()

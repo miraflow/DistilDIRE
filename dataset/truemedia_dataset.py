@@ -29,8 +29,8 @@ class TMDistilDireDataset(Dataset):
         random.shuffle(self.fake_paths)
         random.shuffle(self.real_paths)
         self.img_paths = self.fake_paths + self.real_paths
-        if len(self.real_paths) > len(self.fake_paths) * 3:
-            self.img_paths = self.fake_paths + self.real_paths[:len(self.fake_paths) * 3]
+        # if len(self.real_paths) > len(self.fake_paths) * 3:
+        #     self.img_paths = self.fake_paths + self.real_paths[:len(self.fake_paths) * 3]
             
         # img_paths = []
         # for img_path, dire_path, eps_path, isfake in self.img_paths:
