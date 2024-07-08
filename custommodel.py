@@ -17,7 +17,7 @@ import typing
 import requests
 import time  # Import the time module
 from guided_diffusion.compute_dire_eps import dire_get_first_step_noise, create_argparser
-from networks.distill_model import DistilDIREOnlyEPS
+from networks.distill_model import DistilDIREOnlyEPS, DistilDIRE
 from guided_diffusion.guided_diffusion.script_util import (
     create_model_and_diffusion,
     model_and_diffusion_defaults,
@@ -97,7 +97,8 @@ class CustomModel:
         self.net = net
         self.num_frames = num_frames
         
-        self.model =  DistilDIREOnlyEPS('cuda').to('cuda')
+        # self.model =  DistilDIREOnlyEPS('cuda').to('cuda')
+        self.model = DistilDIRE('cuda').to('cuda')
         self.trans = transforms.Compose((transforms.Resize(256), transforms.CenterCrop((256, 256)),))
         
         self._load_state_dict(ckpt)
@@ -127,28 +128,12 @@ class CustomModel:
 
     def _forward_dire_img(self, img_path, save_dire=True, thr=0.5):
         img = Image.open(img_path).convert("RGB")
-        w, h = img.size
-        fsize = os.stat(img_path).st_size
-
-        img = (TF.to_tensor(img)*255).to(torch.uint8)
-
-        comp = fsize/(w*h)
-        comp_quality = min(0.1/comp * 100, 100)
-        comp_quality = max(comp_quality, 1)
-        img = decode_jpeg(encode_jpeg(img, quality=int(comp_quality))) 
-        
-        img = Compose([Resize(512, antialias='True'), CenterCrop((512, 512))])(img)
-        img = decode_jpeg(encode_jpeg(img, quality=75))
-        img = img / 255.
-
-        IMG = TF.to_pil_image(img)
-        IMG.save("compressed.jpg")
+        img = TF.to_tensor(img)
         img = self.trans(img).cuda() * 2 - 1
-        print(f"Min: {img.min()}, Max: {img.max()}")
         img = img.unsqueeze(0)
         with torch.no_grad():
             eps = dire_get_first_step_noise(img, self.adm_model, self.diffusion, self.args, "cuda")
-            prob = self.model(eps)['logit'].sigmoid()
+            prob = self.model(img, eps)['logit'].sigmoid()
             
         return {"df_probability": prob.median().item(), "prediction": real_or_fake_thres(prob.median().item(), thr)}
 

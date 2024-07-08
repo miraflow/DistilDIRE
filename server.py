@@ -13,7 +13,7 @@ _DEFAULT_PORT = 8000
 """Default port to serve inference on."""
 
 # Load and initialize the model on startup globally, so it can be reused.
-model_instance = CustomModel(ckpt='models/240706_model_epoch_5.pth')
+model_instance = CustomModel(ckpt='models/distil-240708-extonly-model_epoch_43.pth')
 """Global instance of the model to serve."""
 
 server = Sanic("server")
