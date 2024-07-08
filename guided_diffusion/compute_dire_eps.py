@@ -32,6 +32,7 @@ from .guided_diffusion.script_util import (
 )
 
 
+
 def reshape_image(imgs: torch.Tensor, image_size: int) -> torch.Tensor:
     if len(imgs.shape) == 3:
         imgs = imgs.unsqueeze(0)
@@ -209,7 +210,7 @@ if __name__ == "__main__":
     adm_model.load_state_dict(torch.load(adm_args['model_path'], map_location="cpu"))
     adm_model.to(device)
 
-    # force to use fp32
+    adm_model.convert_to_fp16()
     adm_model.eval()
 
     dataset = TMDistilDireDataset(adm_args['data_root'], prepared_dire=False)

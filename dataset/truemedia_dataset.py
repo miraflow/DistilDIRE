@@ -47,22 +47,24 @@ class TMDistilDireDataset(Dataset):
     def __getitem__(self, idx):
         img_path, dire_path, eps_path, isfake = self.img_paths[idx]
         img = Image.open(img_path).convert('RGB')
-        w, h = img.size
-        fsize = os.stat(img_path).st_size
+        # w, h = img.size
+        # fsize = os.stat(img_path).st_size
 
-        img = (TF.to_tensor(img)*255).to(torch.uint8)
+        # img = (TF.to_tensor(img)*255).to(torch.uint8)
 
-        comp = fsize/(w*h)
-        comp_quality = min(TARGET_COMP/comp * 100, 100)
-        comp_quality = max(comp_quality, 1)
-        img = decode_jpeg(encode_jpeg(img, quality=int(comp_quality))) 
-        img = img / 255.
-        # img = TF.to_tensor(img)*2 - 1
+        # comp = fsize/(w*h)
+        # comp_quality = min(TARGET_COMP/comp * 100, 100)
+        # comp_quality = max(comp_quality, 1)
+        # img = decode_jpeg(encode_jpeg(img, quality=int(comp_quality))) 
+        # img = img / 255.
+        img = TF.to_tensor(img)*2 - 1
 
         
         if self.prepared_dire:
+            img = self.transform(img)
             dire = Image.open(dire_path).convert('RGB')
             dire = TF.to_tensor(dire)*2 - 1
+            dire = self.transform(dire)
             eps = torch.load(eps_path, weights_only=True, mmap=True)
             # eps = torch.zeros_like(img)
             assert img.shape[1:] == dire.shape[1:] == eps.shape[1:], f"Shape mismatch: {img.shape[1:]}, {dire.shape[1:]}, {eps.shape[1:]}"
@@ -119,6 +121,7 @@ class TMEPSOnlyDataset(TMDistilDireDataset):
         img_path, dire_path, eps_path, isfake = self.img_paths[idx]
         img = Image.open(img_path).convert('RGB')
         img = TF.to_tensor(img)*2 - 1
+        img = self.transform(img)
         eps = torch.load(eps_path, weights_only=True, mmap=True)
         dire = torch.zeros_like(img)
     

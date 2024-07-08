@@ -5,6 +5,7 @@ import torch.nn as nn
 import torchvision.models as TVM
 from collections import OrderedDict
 from sklearn.metrics import accuracy_score, average_precision_score, precision_score
+from torchvision.io import decode_jpeg, encode_jpeg
 import torch.distributed as dist
 from tqdm.auto import tqdm
 import numpy as np
@@ -180,6 +181,14 @@ class Trainer(BaseModel):
             H, W = img.shape[-2:]
             B = img.shape[0]
 
+            # random jpeg compression
+            if istrain:
+                comp_quality = torch.randint(10, 100, (B,))
+                img = (img+1)/2
+                img = (img*255).to(torch.uint8)
+                img = torch.stack([decode_jpeg(encode_jpeg(img[i], quality=int(comp_quality[i]))) for i in range(B)], dim=0)
+                img = img / 255.
+                img = (img*2)-1
             # only-img
             if self.only_img:
                 img = img.to(self.device)
@@ -187,17 +196,17 @@ class Trainer(BaseModel):
                 eps = dire_get_first_step_noise(img, self.adm, self.diffusion, self.adm_args, self.device)
 
             # cutmix
-            if torch.rand(1) < 0.3 and istrain:
-                c_lambda = torch.rand(1)
-                r_x = torch.randint(0, W, (1,))
-                r_y = torch.randint(0, H, (1,))
-                r_w = int(torch.sqrt(1-c_lambda)*W)
-                r_h = int(torch.sqrt(1-c_lambda)*H)
+            # if torch.rand(1) < 0.3 and istrain:
+            #     c_lambda = torch.rand(1)
+            #     r_x = torch.randint(0, W, (1,))
+            #     r_y = torch.randint(0, H, (1,))
+            #     r_w = int(torch.sqrt(1-c_lambda)*W)
+            #     r_h = int(torch.sqrt(1-c_lambda)*H)
 
-                img[:, :, r_y:r_y+r_h, r_x:r_x+r_w] = img[0:1, :, r_y:r_y+r_h, r_x:r_x+r_w].repeat(B, 1, 1, 1)
-                dire[:, :, r_y:r_y+r_h, r_x:r_x+r_w] = dire[0:1, :, r_y:r_y+r_h, r_x:r_x+r_w].repeat(B, 1, 1, 1)
-                eps[:, :, r_y:r_y+r_h, r_x:r_x+r_w] = eps[0:1, :, r_y:r_y+r_h, r_x:r_x+r_w].repeat(B, 1, 1, 1)
-                label = c_lambda * label + (1-c_lambda) * label[0:1]
+            #     img[:, :, r_y:r_y+r_h, r_x:r_x+r_w] = img[0:1, :, r_y:r_y+r_h, r_x:r_x+r_w].repeat(B, 1, 1, 1)
+            #     dire[:, :, r_y:r_y+r_h, r_x:r_x+r_w] = dire[0:1, :, r_y:r_y+r_h, r_x:r_x+r_w].repeat(B, 1, 1, 1)
+            #     eps[:, :, r_y:r_y+r_h, r_x:r_x+r_w] = eps[0:1, :, r_y:r_y+r_h, r_x:r_x+r_w].repeat(B, 1, 1, 1)
+            #     label = c_lambda * label + (1-c_lambda) * label[0:1]
             self.input = img.to(self.device)
             self.dire = dire.to(self.device)
             self.eps = eps.to(self.device)

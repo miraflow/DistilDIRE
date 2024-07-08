@@ -1,10 +1,10 @@
 ## set MODEL_PATH, num_samples, has_subfolder, images_dir, recons_dir, dire_dir
-DATA_ROOT=("/truemedia-eval/crawled-fakes")
-SAVE_ROOT=("/truemedia-eval/y1dataset")
+DATA_ROOT=("/home/ubuntu/y1/DistilDIRE/datasets/truemedia-external")
+SAVE_ROOT=("/home/ubuntu/y1/DistilDIRE/datasets/truemedia-external")
 
-MODEL_PATH="models/512x512-adm.pt" # imagenet pretrained adm (unconditional, 512x512)
+MODEL_PATH="models/256x256-adm.pt" # imagenet pretrained adm (unconditional, 512x512)
 SAMPLE_FLAGS="--batch_size 4" # ddim20 is forced
-PREPROCESS_FLAGS="--compute_dire False --compute_eps False"
+PREPROCESS_FLAGS="--compute_dire True --compute_eps True"
 
 for i in 0 
 do
