@@ -32,14 +32,14 @@ class TMDistilDireDataset(Dataset):
         # if len(self.real_paths) > len(self.fake_paths) * 3:
         #     self.img_paths = self.fake_paths + self.real_paths[:len(self.fake_paths) * 3]
             
-        # img_paths = []
-        # for img_path, dire_path, eps_path, isfake in self.img_paths:
-        #     try:
-        #         Image.open(img_path)
-        #         img_paths.append((img_path, dire_path, eps_path, isfake))
-        #     except:
-        #         continue
-        # self.img_paths = img_paths
+        img_paths = []
+        for img_path, dire_path, eps_path, isfake in self.img_paths:
+            try:
+                Image.open(img_path)
+                img_paths.append((img_path, dire_path, eps_path, isfake))
+            except:
+                continue
+        self.img_paths = img_paths
 
     def __len__(self):
         return len(self.img_paths)

@@ -99,7 +99,7 @@ class CustomModel:
         
         # self.model =  DistilDIREOnlyEPS('cuda').to('cuda')
         self.model = DistilDIRE('cuda').to('cuda')
-        self.trans = transforms.Compose((transforms.Resize(256), transforms.CenterCrop((256, 256)),))
+        self.trans = transforms.Compose((transforms.Resize(256, antialias=True), transforms.CenterCrop((256, 256)),))
         
         self._load_state_dict(ckpt)
         
@@ -133,6 +133,13 @@ class CustomModel:
         img = img.unsqueeze(0)
         with torch.no_grad():
             eps = dire_get_first_step_noise(img, self.adm_model, self.diffusion, self.args, "cuda")
+            eps = eps.detach().cpu()
+            ext = img_path.split('.')[-1]
+            eps_path = img_path.replace(f".{ext}", ".pt")
+            torch.save(eps, eps_path)
+
+            eps = torch.load(eps_path, weights_only=True, mmap=True).cuda()
+            os.remove(eps_path)
             prob = self.model(img, eps)['logit'].sigmoid()
             
         return {"df_probability": prob.median().item(), "prediction": real_or_fake_thres(prob.median().item(), thr)}

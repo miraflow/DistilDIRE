@@ -9,7 +9,7 @@ decord
 face_recognition
 matplotlib
 numpy
-opencv-python
+opencv-python==4.9.0.80
 pandas
 scikit-learn
 tensorboard

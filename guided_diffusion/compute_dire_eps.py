@@ -40,7 +40,7 @@ def reshape_image(imgs: torch.Tensor, image_size: int) -> torch.Tensor:
         crop_func = transforms.CenterCrop(image_size)
         imgs = crop_func(imgs)
     if imgs.shape[2] != image_size:
-        imgs = F.interpolate(imgs, size=(image_size, image_size), mode="bicubic")
+        imgs = F.interpolate(imgs, size=(image_size, image_size), mode="bicubic", antialias=True)
     return imgs
 
 
@@ -215,7 +215,6 @@ if __name__ == "__main__":
 
     dataset = TMDistilDireDataset(adm_args['data_root'], prepared_dire=False)
     sampler = DistributedSampler(dataset, shuffle=False)
-    
     os.makedirs(osp.join(adm_args['save_root'], 'images', 'fakes'), exist_ok=True)
     os.makedirs(osp.join(adm_args['save_root'], 'images', 'reals'), exist_ok=True)
     os.makedirs(osp.join(adm_args['save_root'], 'dire', 'fakes'), exist_ok=True)
@@ -223,7 +222,7 @@ if __name__ == "__main__":
     os.makedirs(osp.join(adm_args['save_root'], 'eps', 'fakes'), exist_ok=True)
     os.makedirs(osp.join(adm_args['save_root'], 'eps', 'reals'), exist_ok=True)
     print(f"Dataset length: {len(dataset)}")
-    dataloader = DataLoader(dataset, batch_size=adm_args['batch_size'], num_workers=4, drop_last=False, sampler=sampler, pin_memory=True)
+    dataloader = DataLoader(dataset, batch_size=adm_args['batch_size'], num_workers=4, drop_last=False, pin_memory=True, sampler=sampler)#
 
     for (img_batch, dire_batch, eps_batch, isfake_batch), (img_pathes, dire_pathes, eps_pathes) in tqdm(dataloader):
         haveall=True 
