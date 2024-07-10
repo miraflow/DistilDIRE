@@ -12,5 +12,4 @@ do
     echo "Running on ${DATA_ROOT[$i]} with save root ${SAVE_ROOT[$i]}"
     torchrun --standalone --nproc_per_node 1 -m guided_diffusion.compute_dire_eps --model_path $MODEL_PATH $PREPROCESS_FLAGS $SAMPLE_FLAGS $SAVE_FLAGS
 done
-torchrun --standalone --nproc_per_node 1 -m train --batch 8 --exp_name 240709-tot-finetune-from-scratch-fp16-distildire --datasets truemedia-total --datasets_test truemedia-external --epoch 50 --lr 1e-4 --only_img True
 # torchrun --standalone --nproc_per_node 8 -m train --batch 128 --exp_name tm-global-scale --datasets y1-global-truemedia --epoch 40 --lr 1e-4

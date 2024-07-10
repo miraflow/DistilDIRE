@@ -133,13 +133,13 @@ class CustomModel:
         img = img.unsqueeze(0)
         with torch.no_grad():
             eps = dire_get_first_step_noise(img, self.adm_model, self.diffusion, self.args, "cuda")
-            eps = eps.detach().cpu()
-            ext = img_path.split('.')[-1]
-            eps_path = img_path.replace(f".{ext}", ".pt")
-            torch.save(eps, eps_path)
+            # eps = eps.detach().cpu()
+            # ext = img_path.split('.')[-1]
+            # eps_path = img_path.replace(f".{ext}", ".pt")
+            # torch.save(eps, eps_path)
 
-            eps = torch.load(eps_path, weights_only=True, mmap=True).cuda()
-            os.remove(eps_path)
+            # eps = torch.load(eps_path, weights_only=True, mmap=True).cuda()
+            # os.remove(eps_path)
             prob = self.model(img, eps)['logit'].sigmoid()
             
         return {"df_probability": prob.median().item(), "prediction": real_or_fake_thres(prob.median().item(), thr)}
