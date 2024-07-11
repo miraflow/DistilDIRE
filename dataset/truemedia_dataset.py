@@ -26,8 +26,8 @@ class TMDistilDireDataset(Dataset):
         else:
             self.fake_paths = list(map(lambda x: (x, "", "", True), self.__fake_img_paths))
             self.real_paths = list(map(lambda x: (x, "", "", False), self.__real_img_paths))
-        random.shuffle(self.fake_paths)
-        random.shuffle(self.real_paths)
+        # random.shuffle(self.fake_paths)
+        # random.shuffle(self.real_paths)
         self.img_paths = self.fake_paths + self.real_paths
         # if len(self.real_paths) > len(self.fake_paths) * 3:
         #     self.img_paths = self.fake_paths + self.real_paths[:len(self.fake_paths) * 3]
@@ -87,8 +87,8 @@ class TMIMGOnlyDataset(TMDistilDireDataset):
        
         img_path, dire_path, eps_path, isfake = self.img_paths[idx]
         img = Image.open(img_path).convert('RGB')
-        img = self.transform(img)
         img = TF.to_tensor(img)*2 - 1
+        img = self.transform(img)
         eps = torch.zeros_like(img)
         dire = torch.zeros_like(img)
     

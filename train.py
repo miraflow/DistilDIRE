@@ -25,7 +25,7 @@ def main(run, cfg):
     dataloader = DataLoader(dataset, 
                             batch_size=cfg.batch_size, 
                             sampler=sampler,
-                            num_workers=2)
+                            num_workers=4)
     val_loader = DataLoader(val_dataset, 
                             batch_size=cfg.batch_size, 
                             sampler=val_samlper,

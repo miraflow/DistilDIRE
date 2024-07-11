@@ -138,7 +138,7 @@ class Trainer(BaseModel):
                 param.requires_grad = False
             self.kd_criterion = nn.MSELoss(reduction='mean')
         
-        self.cls_criterion = nn.BCEWithLogitsLoss(reduction='mean', pos_weight=torch.tensor(0.3))
+        self.cls_criterion = nn.BCEWithLogitsLoss(reduction='mean', pos_weight=torch.tensor(0.5))
         
         # initialize optimizers
         if cfg.optim == "adam":
@@ -196,17 +196,17 @@ class Trainer(BaseModel):
                 eps = dire_get_first_step_noise(img, self.adm, self.diffusion, self.adm_args, self.device)
 
             # cutmix
-            # if torch.rand(1) < 0.3 and istrain:
-            #     c_lambda = torch.rand(1)
-            #     r_x = torch.randint(0, W, (1,))
-            #     r_y = torch.randint(0, H, (1,))
-            #     r_w = int(torch.sqrt(1-c_lambda)*W)
-            #     r_h = int(torch.sqrt(1-c_lambda)*H)
+            if torch.rand(1) < 0.3 and istrain:
+                c_lambda = torch.rand(1)
+                r_x = torch.randint(0, W, (1,))
+                r_y = torch.randint(0, H, (1,))
+                r_w = int(torch.sqrt(1-c_lambda)*W)
+                r_h = int(torch.sqrt(1-c_lambda)*H)
 
-            #     img[:, :, r_y:r_y+r_h, r_x:r_x+r_w] = img[0:1, :, r_y:r_y+r_h, r_x:r_x+r_w].repeat(B, 1, 1, 1)
-            #     dire[:, :, r_y:r_y+r_h, r_x:r_x+r_w] = dire[0:1, :, r_y:r_y+r_h, r_x:r_x+r_w].repeat(B, 1, 1, 1)
-            #     eps[:, :, r_y:r_y+r_h, r_x:r_x+r_w] = eps[0:1, :, r_y:r_y+r_h, r_x:r_x+r_w].repeat(B, 1, 1, 1)
-            #     label = c_lambda * label + (1-c_lambda) * label[0:1]
+                img[:, :, r_y:r_y+r_h, r_x:r_x+r_w] = img[0:1, :, r_y:r_y+r_h, r_x:r_x+r_w].repeat(B, 1, 1, 1)
+                dire[:, :, r_y:r_y+r_h, r_x:r_x+r_w] = dire[0:1, :, r_y:r_y+r_h, r_x:r_x+r_w].repeat(B, 1, 1, 1)
+                eps[:, :, r_y:r_y+r_h, r_x:r_x+r_w] = eps[0:1, :, r_y:r_y+r_h, r_x:r_x+r_w].repeat(B, 1, 1, 1)
+                label = c_lambda * label + (1-c_lambda) * label[0:1]
             self.input = img.to(self.device)
             self.dire = dire.to(self.device)
             self.eps = eps.to(self.device)
