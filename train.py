@@ -18,7 +18,12 @@ def main(run, cfg):
         dataset = TMIMGOnlyDataset(cfg.dataset_root, istrain=True)
         val_dataset = TMIMGOnlyDataset(cfg.dataset_test_root, istrain=False)
     else:
-        dataset= TMDistilDireDataset(cfg.dataset_root)
+        # dataset= TMDistilDireDataset(cfg.dataset_root)
+        # val_dataset = TMDistilDireDataset(cfg.dataset_test_root)
+        # 2024.7.15 only
+        roots = ["/home/ubuntu/y1/DistilDIRE/datasets/truemedia-total", "/home/ubuntu/y1/DistilDIRE/datasets/y1scale100k"]
+        eps_roots = ["/home/ubuntu/y1/DistilDIRE/datasets/truemedia-total", "/truemedia-eval/y1scale100k"]
+        dataset = JOINEDDistilDireDataset(roots, eps_roots)
         val_dataset = TMDistilDireDataset(cfg.dataset_test_root)
     sampler = DistributedSampler(dataset)
     val_samlper = DistributedSampler(val_dataset)
@@ -29,7 +34,7 @@ def main(run, cfg):
     val_loader = DataLoader(val_dataset, 
                             batch_size=cfg.batch_size, 
                             sampler=val_samlper,
-                            num_workers=2)
+                            num_workers=4)
     trainer = Trainer(cfg, dataloader, val_loader, run, local_rank, True, world_size, cfg.kd)
     if cfg.pretrained_weights:
         trainer.load_networks(cfg.pretrained_weights)
@@ -43,7 +48,7 @@ if __name__ == "__main__":
     import wandb
     
     from torch.utils.data import DataLoader
-    from dataset import TMDistilDireDataset, TMDireDataset, TMEPSOnlyDataset, TMIMGOnlyDataset
+    from dataset import TMDistilDireDataset, TMDireDataset, TMEPSOnlyDataset, TMIMGOnlyDataset, JOINEDDistilDireDataset
     
     dist.init_process_group(backend='nccl', init_method='env://')
     local_rank = int(os.environ['LOCAL_RANK']) 

@@ -182,6 +182,7 @@ class Trainer(BaseModel):
             B = img.shape[0]
 
             # random jpeg compression
+            # moved to transforms
             if istrain:
                 comp_quality = torch.randint(10, 100, (B,))
                 img = (img+1)/2
@@ -196,7 +197,7 @@ class Trainer(BaseModel):
                 eps = dire_get_first_step_noise(img, self.adm, self.diffusion, self.adm_args, self.device)
 
             # cutmix
-            if torch.rand(1) < 0.3 and istrain:
+            if torch.rand(1) < 0.5 and istrain:
                 c_lambda = torch.rand(1)
                 r_x = torch.randint(0, W, (1,))
                 r_y = torch.randint(0, H, (1,))
