@@ -21,9 +21,10 @@ def main(run, cfg):
         # dataset= TMDistilDireDataset(cfg.dataset_root)
         # val_dataset = TMDistilDireDataset(cfg.dataset_test_root)
         # 2024.7.15 only
-        roots = ["/home/ubuntu/y1/DistilDIRE/datasets/truemedia-total", "/home/ubuntu/y1/DistilDIRE/datasets/y1scale100k"]
-        eps_roots = ["/home/ubuntu/y1/DistilDIRE/datasets/truemedia-total", "/truemedia-eval/y1scale100k"]
+        roots = ["/home/ubuntu/y1/DistilDIRE/datasets/truemedia-total", "/home/ubuntu/y1/DistilDIRE/datasets/truemedia-external"]
+        eps_roots = ["/home/ubuntu/y1/DistilDIRE/datasets/truemedia-total", "/home/ubuntu/y1/DistilDIRE/datasets/truemedia-external"]
         dataset = JOINEDDistilDireDataset(roots, eps_roots)
+        # dataset = TMDistilDireDataset(cfg.dataset_root)
         val_dataset = TMDistilDireDataset(cfg.dataset_test_root)
     sampler = DistributedSampler(dataset)
     val_samlper = DistributedSampler(val_dataset)

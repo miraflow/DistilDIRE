@@ -29,17 +29,17 @@ class TMDistilDireDataset(Dataset):
         # random.shuffle(self.fake_paths)
         # random.shuffle(self.real_paths)
         self.img_paths = self.fake_paths + self.real_paths
-            
-        img_paths = []
-        for img_path, dire_path, eps_path, isfake in self.img_paths:
-            if not osp.exists(eps_path) or not osp.exists(img_path) or not osp.exists(dire_path):
-                continue
-            try:
-                Image.open(img_path)
-                img_paths.append((img_path, dire_path, eps_path, isfake))
-            except:
-                continue
-        self.img_paths = img_paths
+        if prepared_dire:
+            img_paths = []
+            for img_path, dire_path, eps_path, isfake in self.img_paths:
+                if not osp.exists(eps_path) or not osp.exists(img_path) or not osp.exists(dire_path):
+                    continue
+                try:
+                    Image.open(img_path)
+                    img_paths.append((img_path, dire_path, eps_path, isfake))
+                except:
+                    continue
+            self.img_paths = img_paths
 
     def __len__(self):
         return len(self.img_paths)

@@ -1,9 +1,9 @@
 ## set MODEL_PATH, num_samples, has_subfolder, images_dir, recons_dir, dire_dir
-DATA_ROOT=("/mnt/8T/y1scale100k")
-SAVE_ROOT=("/mnt/8T/y1scale100k")
+DATA_ROOT=("/home/ubuntu/y1/DistilDIRE/datasets/truemedia-external")
+SAVE_ROOT=("/home/ubuntu/y1/DistilDIRE/datasets/truemedia-external")
 
 MODEL_PATH="models/256x256-adm.pt" # imagenet pretrained adm (unconditional, 512x512)
-SAMPLE_FLAGS="--batch_size 32" # ddim20 is forced
+SAMPLE_FLAGS="--batch_size 1" # ddim20 is forced
 PREPROCESS_FLAGS="--compute_dire True --compute_eps True"
 
 for i in 0 

@@ -67,7 +67,7 @@ def create_argparser():
        num_head_channels=64,
        num_res_blocks=2,
        resblock_updown=True,
-       use_fp16=True,
+       use_fp16=False,
        use_scale_shift_norm=True,
        data_root="",
        compute_dire=False,
@@ -104,7 +104,7 @@ def create_dicts_for_static_init():
        num_head_channels=64,
        num_res_blocks=2,
        resblock_updown=True,
-       use_fp16=True,
+       use_fp16=False,
        use_scale_shift_norm=True,
        data_root="",
        compute_dire=False,
@@ -191,7 +191,7 @@ def dire_get_first_step_noise(img_batch:torch.Tensor, model, diffusion, args, de
 
 if __name__ == "__main__":
     from torch.utils.data.distributed import DistributedSampler
-    from s3torchconnector import S3MapDataset, S3IterableDataset, S3Checkpoint
+    # from s3torchconnector import S3MapDataset, S3IterableDataset, S3Checkpoint
 
     import torch.distributed as dist
     import os 
@@ -200,9 +200,9 @@ if __name__ == "__main__":
     
     local_rank = int(os.environ['LOCAL_RANK']) 
     torch.cuda.set_device(local_rank)
-    DATASET_URI="s3://truemedia-dataset/distil-dire-dataset/y1scale100k"
-    REGION = "us-west-2"
-    checkpoint = S3Checkpoint(region=REGION)
+    # DATASET_URI="s3://truemedia-dataset/distil-dire-dataset/y1scale100k"
+    # REGION = "us-west-2"
+    # checkpoint = S3Checkpoint(region=REGION)
     # Set device for this process
     device = torch.device("cuda") 
 
@@ -214,7 +214,8 @@ if __name__ == "__main__":
     adm_model.load_state_dict(torch.load(adm_args['model_path'], map_location="cpu"))
     adm_model.to(device)
 
-    adm_model.convert_to_fp16()
+    # fixed to fp32; not deterministic output using fp16
+    # adm_model.convert_to_fp16()
     adm_model.eval()
 
     dataset = TMDistilDireDataset(adm_args['data_root'], prepared_dire=False)
@@ -262,21 +263,21 @@ if __name__ == "__main__":
                 dire_path = img_path.replace('/images/', '/dire/')
                 eps_path = img_path.replace('/images/', '/eps/').split('.')[0] + '.pt'
 
-                dire_path = osp.join(DATASET_URI, 'dire', dire_path.split('/dire/')[-1])
-                eps_path = osp.join(DATASET_URI, 'eps', eps_path.split('/eps/')[-1])
+                # dire_path = osp.join(DATASET_URI, 'dire', dire_path.split('/dire/')[-1])
+                # eps_path = osp.join(DATASET_URI, 'eps', eps_path.split('/eps/')[-1])
                 
-                with checkpoint.writer(dire_path) as writer:
-                    img = transforms.ToPILImage()(dire_img[i])
-                    img.save(writer, format='png')
+                # with checkpoint.writer(dire_path) as writer:
+                #     img = transforms.ToPILImage()(dire_img[i])
+                #     img.save(writer, format='png')
                     # torchvision.utils.save_image(dire_img[i], reader, format=dire_path.split('.')[-1])
-                # if not osp.exists(dire_path) and adm_args['compute_dire']:
-                #     torchvision.utils.save_image(dire_img[i], dire_path)
+                if not osp.exists(dire_path) and adm_args['compute_dire']:
+                    torchvision.utils.save_image(dire_img[i], dire_path)
 
-                with checkpoint.writer(eps_path) as writer:
-                    torch.save(eps[i], writer)
+                # with checkpoint.writer(eps_path) as writer:
+                #     torch.save(eps[i], writer)
 
-                # if not osp.exists(img_path):
-                #     torchvision.utils.save_image(img[i], img_path)
+                if not osp.exists(img_path):
+                    torchvision.utils.save_image(img[i], img_path)
                 
-                # if not osp.exists(eps_path) and eps is not None:
-                #     torch.save(eps[i], eps_path)
+                if not osp.exists(eps_path) and eps is not None:
+                    torch.save(eps[i], eps_path)
