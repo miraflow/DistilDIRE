@@ -2,7 +2,7 @@ DATA_ROOT=("SRC")
 SAVE_ROOT=("DST")
 
 MODEL_PATH="models/256x256-adm.pt" # imagenet pretrained adm (unconditional, 512x512)
-SAMPLE_FLAGS="--batch_size 32" # ddim20 is forced
+SAMPLE_FLAGS="--batch_size 1" # ddim20 is forced
 PREPROCESS_FLAGS="--compute_dire True --compute_eps True"
 
 for i in 0 

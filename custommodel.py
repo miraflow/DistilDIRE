@@ -128,8 +128,8 @@ class CustomModel:
 
     def _forward_dire_img(self, img_path, save_dire=True, thr=0.5):
         img = Image.open(img_path).convert("RGB")
-        img = TF.to_tensor(img)
-        img = self.trans(img).cuda() * 2 - 1
+        img = TF.to_tensor(img)* 2 - 1
+        img = self.trans(img).cuda() 
         img = img.unsqueeze(0)
         with torch.no_grad():
             eps = dire_get_first_step_noise(img, self.adm_model, self.diffusion, self.args, "cuda")

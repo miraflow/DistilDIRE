@@ -5,10 +5,11 @@ from utils.config import cfg
 def main(run, cfg):
     from utils.trainer import Trainer
     from torch.utils.data import DataLoader
-    from dataset import TMEPSOnlyDataset, TMIMGOnlyDataset
+    from dataset import TMEPSOnlyDataset, TMIMGOnlyDataset, TMDistilDireDataset
     print(cfg.dataset_test_root)
     # dataset =TMEPSOnlyDataset(cfg.dataset_test_root, False)
     dataset = TMIMGOnlyDataset(cfg.dataset_test_root, istrain=False)
+    # dataset = TMDistilDireDataset(cfg.dataset_test_root, prepared_dire=True)
     dataloader = DataLoader(dataset, 
                             batch_size=1, 
                             shuffle=True, num_workers=2)

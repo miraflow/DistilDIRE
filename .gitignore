@@ -5,7 +5,7 @@ __pycache__/
 aws/
 *.txt
 aws*
-
+*.jpeg
 ./256x256-adm.pt
 ./imagenet_adm.pth
 ./celebahq-sdv.pth
