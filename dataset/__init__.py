@@ -1,1 +1,1 @@
-from .distildire_dataset import TMDistilDireDataset, TMDireDataset, TMEPSOnlyDataset, TMIMGOnlyDataset
+from .distildire_dataset import TMDistilDireDataset, TMDireDataset, TMEPSOnlyDataset, TMIMGOnlyDataset, JOINEDDistilDireDataset

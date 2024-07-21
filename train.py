@@ -20,11 +20,8 @@ def main(run, cfg):
     else:
         # dataset= TMDistilDireDataset(cfg.dataset_root)
         # val_dataset = TMDistilDireDataset(cfg.dataset_test_root)
-        # 2024.7.15 only
-        roots = ["/home/ubuntu/y1/DistilDIRE/datasets/truemedia-total", "/home/ubuntu/y1/DistilDIRE/datasets/truemedia-external"]
-        eps_roots = ["/home/ubuntu/y1/DistilDIRE/datasets/truemedia-total", "/home/ubuntu/y1/DistilDIRE/datasets/truemedia-external"]
-        dataset = JOINEDDistilDireDataset(roots, eps_roots)
-        # dataset = TMDistilDireDataset(cfg.dataset_root)
+        # dataset = JOINEDDistilDireDataset(roots, eps_roots)
+        dataset = TMDistilDireDataset(cfg.dataset_root)
         val_dataset = TMDistilDireDataset(cfg.dataset_test_root)
     sampler = DistributedSampler(dataset)
     val_samlper = DistributedSampler(val_dataset)
@@ -59,7 +56,7 @@ if __name__ == "__main__":
     from utils.config import cfg
     run = None
     if local_rank == 0:
-        run = wandb.init(project=f'dire-distill-truemedia', config=cfg, dir=cfg.exp_dir) 
+        run = wandb.init(project=f'distil-dire', config=cfg, dir=cfg.exp_dir) 
     main(run, cfg)
     
 
