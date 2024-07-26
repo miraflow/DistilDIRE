@@ -32,6 +32,7 @@ from .guided_diffusion.script_util import (
 )
 
 
+
 def reshape_image(imgs: torch.Tensor, image_size: int) -> torch.Tensor:
     if len(imgs.shape) == 3:
         imgs = imgs.unsqueeze(0)
@@ -39,7 +40,7 @@ def reshape_image(imgs: torch.Tensor, image_size: int) -> torch.Tensor:
         crop_func = transforms.CenterCrop(image_size)
         imgs = crop_func(imgs)
     if imgs.shape[2] != image_size:
-        imgs = F.interpolate(imgs, size=(image_size, image_size), mode="bicubic")
+        imgs = F.interpolate(imgs, size=(image_size, image_size), mode="bicubic", antialias=True)
     return imgs
 
 
@@ -56,17 +57,17 @@ def create_argparser():
     defaults.update(model_and_diffusion_defaults())
     sanic_dict = dict(
        attention_resolutions='32,16,8',
-       class_cond=True,
+       class_cond=False,
        diffusion_steps=1000,
-       image_size=512,
+       image_size=256,
        learn_sigma=True,
-       model_path="./512x512-adm.pt",
+       model_path="./models/256x256-adm.pt",
        noise_schedule='linear',
        num_channels=256,
        num_head_channels=64,
        num_res_blocks=2,
        resblock_updown=True,
-       use_fp16=False,
+       use_fp16=True,
        use_scale_shift_norm=True,
        data_root="",
        compute_dire=False,
@@ -80,6 +81,41 @@ def create_argparser():
     args = parser.parse_args()
 
     return args_to_dict(args, list(defaults.keys()))
+
+def create_dicts_for_static_init():
+    defaults = dict(
+        clip_denoised=True,
+        num_samples=-1,
+        use_ddim=True,
+        real_step=0,
+        continue_reverse=False,
+        has_subfolder=False,
+    )
+    defaults.update(model_and_diffusion_defaults())
+    sanic_dict = dict(
+       attention_resolutions='32,16,8',
+       class_cond=False,
+       diffusion_steps=1000,
+       image_size=256,
+       learn_sigma=True,
+       model_path="./models/256x256-adm.pt",
+       noise_schedule='linear',
+       num_channels=256,
+       num_head_channels=64,
+       num_res_blocks=2,
+       resblock_updown=True,
+       use_fp16=True,
+       use_scale_shift_norm=True,
+       data_root="",
+       compute_dire=False,
+       compute_eps=False,
+       save_root="",
+       batch_size=32,
+    )
+    defaults.update(sanic_dict)
+
+    return defaults
+
 
 
 @torch.no_grad()
@@ -174,12 +210,11 @@ if __name__ == "__main__":
     adm_model.load_state_dict(torch.load(adm_args['model_path'], map_location="cpu"))
     adm_model.to(device)
 
-    # force to use fp32
+    adm_model.convert_to_fp16()
     adm_model.eval()
 
     dataset = TMDistilDireDataset(adm_args['data_root'], prepared_dire=False)
     sampler = DistributedSampler(dataset, shuffle=False)
-    
     os.makedirs(osp.join(adm_args['save_root'], 'images', 'fakes'), exist_ok=True)
     os.makedirs(osp.join(adm_args['save_root'], 'images', 'reals'), exist_ok=True)
     os.makedirs(osp.join(adm_args['save_root'], 'dire', 'fakes'), exist_ok=True)
@@ -187,7 +222,7 @@ if __name__ == "__main__":
     os.makedirs(osp.join(adm_args['save_root'], 'eps', 'fakes'), exist_ok=True)
     os.makedirs(osp.join(adm_args['save_root'], 'eps', 'reals'), exist_ok=True)
     print(f"Dataset length: {len(dataset)}")
-    dataloader = DataLoader(dataset, batch_size=adm_args['batch_size'], num_workers=2, drop_last=False, sampler=sampler)
+    dataloader = DataLoader(dataset, batch_size=adm_args['batch_size'], num_workers=4, drop_last=False, pin_memory=True, sampler=sampler)#
 
     for (img_batch, dire_batch, eps_batch, isfake_batch), (img_pathes, dire_pathes, eps_pathes) in tqdm(dataloader):
         haveall=True 

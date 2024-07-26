@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torchvision.models as TVM
 from collections import OrderedDict
+from guided_diffusion.guided_diffusion.fp16_util import convert_module_to_f16
 
 import torch
 
@@ -19,8 +20,11 @@ class DistilDIRE(torch.nn.Module):
                                           nn.Linear(2048, 1))
         self.student_backbone.conv1 = nn.Conv2d(6, 64, kernel_size=7, stride=2, padding=3, bias=False)
         self.device = device
-        
-        
+    
+    def convert_to_fp16_student(self):
+        self.student_backbone.apply(convert_module_to_f16)
+    
+
     def forward(self, img, eps):
         img = img.to(self.device)
         eps = eps.to(self.device)
@@ -44,8 +48,7 @@ class DistilDIREOnlyEPS(DistilDIRE):
         
     def forward(self, eps):
         eps = eps.to(self.device)
-    
-        feature = self.student_backbone(eps) 
+        feature = self.student_backbone(eps)
         logit = self.student_head(feature)
         return {'logit':logit, 'feature':feature}
 

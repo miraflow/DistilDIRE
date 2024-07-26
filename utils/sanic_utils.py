@@ -57,7 +57,7 @@ def is_video(vid):
 
 def is_image(img):
     return os.path.isfile(img) and img.endswith(
-        tuple([".jpg", ".jpeg", ".png"])
+        tuple([".jpg", ".jpeg", ".png", ".webp"])
     )
 
 def set_result():

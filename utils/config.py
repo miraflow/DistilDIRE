@@ -56,6 +56,7 @@ class DefaultConfigs(ABC):
     kd_weight = 1.
     reproduce_dire = False
     only_eps = False
+    only_img = False
 
     @property
     def exp_name(self):
@@ -114,13 +115,16 @@ parser.add_argument("--batch", default=256, type=int)
 parser.add_argument("--epoch", default="100", type=int)
 parser.add_argument("--exp_name", default="", type=str)
 parser.add_argument("--datasets", default="", type=str)
+parser.add_argument("--dataset_root", default="", type=str)
 parser.add_argument("--datasets_test", default="", type=str)
+parser.add_argument("--dataset_test_root", default="", type=str)
 parser.add_argument("--pretrained_weights", default="", type=str)
 parser.add_argument("--lr", default=0.00001, type=float)
 parser.add_argument("--kd_weight", default=1., type=float)
 parser.add_argument("--test", default=False, type=str2bool)
 parser.add_argument("--reproduce_dire", default=False, type=str2bool)
 parser.add_argument("--only_eps", default=False, type=str2bool)
+parser.add_argument("--only_img", default=False, type=str2bool)
 parser.add_argument("--kd", default=True, type=str2bool)
 parser.add_argument("opts", default=[], nargs=argparse.REMAINDER)
 args = parser.parse_args()
@@ -160,10 +164,15 @@ cfg.nepoch = args.epoch
 
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 cfg.dataset_root = os.path.join(root_dir, 'datasets', cfg.datasets)
+if args.dataset_root != "":
+    cfg.dataset_root = args.dataset_root
 cfg.dataset_test_root = os.path.join(root_dir, 'datasets', cfg.datasets_test)
+if args.dataset_test_root != "":
+    cfg.dataset_test_root = args.dataset_test_root
 cfg.kd = args.kd
 cfg.reproduce_dire = args.reproduce_dire
 cfg.only_eps = args.only_eps
+cfg.only_img = args.only_img
 cfg.kd_weight = args.kd_weight
 
 # if isinstance(cfg.datasets, str):

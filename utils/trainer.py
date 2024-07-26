@@ -4,7 +4,8 @@ import torch.nn as nn
 
 import torchvision.models as TVM
 from collections import OrderedDict
-from sklearn.metrics import accuracy_score, average_precision_score
+from sklearn.metrics import accuracy_score, average_precision_score, precision_score
+from torchvision.io import decode_jpeg, encode_jpeg
 import torch.distributed as dist
 from tqdm.auto import tqdm
 import numpy as np
@@ -13,7 +14,14 @@ from utils.config import CONFIGCLASS
 from networks.distill_model import DistilDIRE, DIRE, DistilDIREOnlyEPS
 from utils.warmup import GradualWarmupScheduler
 import os.path as osp
-
+from guided_diffusion.compute_dire_eps import dire_get_first_step_noise, create_dicts_for_static_init
+from guided_diffusion.guided_diffusion.script_util import (
+                model_and_diffusion_defaults,
+                create_model_and_diffusion,
+                add_dict_to_argparser,
+                dict_parse,
+                args_to_dict,
+)
 
 class BaseModel(nn.Module):
     def __init__(self, cfg: CONFIGCLASS):
@@ -84,6 +92,7 @@ class Trainer(BaseModel):
         self.arch = cfg.arch
         self.reproduce_dire = cfg.reproduce_dire
         self.only_eps = cfg.only_eps
+        self.only_img = cfg.only_img
         self.test_name = osp.basename(cfg.dataset_test_root)
         self.rank = rank
         self.device = torch.device(f"cuda") 
@@ -100,14 +109,27 @@ class Trainer(BaseModel):
         
         # wandb logger (pass if None)
         self.run = run
-        
+        self.adm = None
         if self.reproduce_dire:
             self.student = DIRE(self.device).to(self.device)
         else: 
-            if self.only_eps:
+            if self.only_eps or self.only_img:
                 self.student = DistilDIREOnlyEPS(self.device).to(self.device)
+                if self.only_img:
+                    adm_args = create_dicts_for_static_init()
+                    adm_args['timestep_respacing'] = 'ddim20'
+                    adm_model, diffusion = create_model_and_diffusion(**dict_parse(adm_args, model_and_diffusion_defaults().keys()))
+                    adm_model.load_state_dict(torch.load(adm_args['model_path'], map_location="cpu"))
+                    print("ADM model loaded...")
+                    self.adm = adm_model
+                    self.adm.convert_to_fp16()
+                    self.adm.to(self.device)
+                    self.adm.eval()
+                    self.diffusion = diffusion
+                    self.adm_args = adm_args
             else:
                 self.student = DistilDIRE(self.device).to(self.device)
+            # self.student.convert_to_fp16_student()
             __backbone = TVM.resnet50(weights=TVM.ResNet50_Weights.DEFAULT)
             self.teacher = nn.Sequential(OrderedDict([*(list(__backbone.named_children())[:-2])])) # drop last layer which is classifier
             self.teacher.eval().to(self.device)
@@ -116,7 +138,7 @@ class Trainer(BaseModel):
                 param.requires_grad = False
             self.kd_criterion = nn.MSELoss(reduction='mean')
         
-        self.cls_criterion = nn.BCEWithLogitsLoss(reduction='mean')
+        self.cls_criterion = nn.BCEWithLogitsLoss(reduction='mean', pos_weight=torch.tensor(0.3))
         
         # initialize optimizers
         if cfg.optim == "adam":
@@ -158,18 +180,33 @@ class Trainer(BaseModel):
             img, dire, eps, label = input # if len(input) == 3 else (input[0], input[1], {})
             H, W = img.shape[-2:]
             B = img.shape[0]
-            # cutmix
-            if torch.rand(1) < 0.25 and istrain:
-                c_lambda = torch.rand(1)
-                r_x = torch.randint(0, W, (1,))
-                r_y = torch.randint(0, H, (1,))
-                r_w = int(torch.sqrt(1-c_lambda)*W)
-                r_h = int(torch.sqrt(1-c_lambda)*H)
 
-                img[:, :, r_y:r_y+r_h, r_x:r_x+r_w] = img[0:1, :, r_y:r_y+r_h, r_x:r_x+r_w].repeat(B, 1, 1, 1)
-                dire[:, :, r_y:r_y+r_h, r_x:r_x+r_w] = dire[0:1, :, r_y:r_y+r_h, r_x:r_x+r_w].repeat(B, 1, 1, 1)
-                eps[:, :, r_y:r_y+r_h, r_x:r_x+r_w] = eps[0:1, :, r_y:r_y+r_h, r_x:r_x+r_w].repeat(B, 1, 1, 1)
-                label = c_lambda * label + (1-c_lambda) * label[0:1]
+            # random jpeg compression
+            if istrain:
+                comp_quality = torch.randint(10, 100, (B,))
+                img = (img+1)/2
+                img = (img*255).to(torch.uint8)
+                img = torch.stack([decode_jpeg(encode_jpeg(img[i], quality=int(comp_quality[i]))) for i in range(B)], dim=0)
+                img = img / 255.
+                img = (img*2)-1
+            # only-img
+            if self.only_img:
+                img = img.to(self.device)
+                # calc eps from img
+                eps = dire_get_first_step_noise(img, self.adm, self.diffusion, self.adm_args, self.device)
+
+            # cutmix
+            # if torch.rand(1) < 0.3 and istrain:
+            #     c_lambda = torch.rand(1)
+            #     r_x = torch.randint(0, W, (1,))
+            #     r_y = torch.randint(0, H, (1,))
+            #     r_w = int(torch.sqrt(1-c_lambda)*W)
+            #     r_h = int(torch.sqrt(1-c_lambda)*H)
+
+            #     img[:, :, r_y:r_y+r_h, r_x:r_x+r_w] = img[0:1, :, r_y:r_y+r_h, r_x:r_x+r_w].repeat(B, 1, 1, 1)
+            #     dire[:, :, r_y:r_y+r_h, r_x:r_x+r_w] = dire[0:1, :, r_y:r_y+r_h, r_x:r_x+r_w].repeat(B, 1, 1, 1)
+            #     eps[:, :, r_y:r_y+r_h, r_x:r_x+r_w] = eps[0:1, :, r_y:r_y+r_h, r_x:r_x+r_w].repeat(B, 1, 1, 1)
+            #     label = c_lambda * label + (1-c_lambda) * label[0:1]
             self.input = img.to(self.device)
             self.dire = dire.to(self.device)
             self.eps = eps.to(self.device)
@@ -180,7 +217,7 @@ class Trainer(BaseModel):
         if self.reproduce_dire:
             self.output = self.student(self.dire)
         else:
-            if self.only_eps:
+            if self.only_eps or self.only_img:
                 self.output = self.student(self.eps)
             else:
                 self.output = self.student(self.input, self.eps)
@@ -253,14 +290,15 @@ class Trainer(BaseModel):
         y_true, y_pred = np.array(y_true), np.array(y_pred)
         acc = accuracy_score(y_true, y_pred > 0.5)
         ap = average_precision_score(y_true, y_pred)
+        precision = precision_score(y_true, y_pred > 0.5)
         if self.run:
-            self.run.log({"val_acc": acc, "val_ap": ap})
+            self.run.log({"val_acc": acc, "val_ap": ap , "val_precision": precision})
             self.run.log({"N_FAKE": N_FAKE, "N_REAL": N_REAL})
-        print(f"Validation: acc: {acc}, ap: {ap}")
+        print(f"Validation: acc: {acc}, ap: {ap}, precision: {precision}")
         print(f"N_FAKE: {N_FAKE}, N_REAL: {N_REAL}")
         if save:
             with open(save_name, "w") as f:
-                f.write(f"Validation: acc: {acc}, ap: {ap}")
+                f.write(f"Validation: acc: {acc}, ap: {ap}, precision: {precision}\n")
                 f.write(f"N_FAKE: {N_FAKE}, N_REAL: {N_REAL}")
         
         

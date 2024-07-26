@@ -5,6 +5,9 @@ from datetime import datetime
 import torchvision.transforms as transforms
 from torchvision.utils import save_image
 import torchvision.transforms.functional as TF
+from torchvision.transforms import Compose, Resize, CenterCrop
+from torchvision.io import decode_jpeg, encode_jpeg
+
 
 from PIL import Image 
 import os
@@ -14,7 +17,7 @@ import typing
 import requests
 import time  # Import the time module
 from guided_diffusion.compute_dire_eps import dire_get_first_step_noise, create_argparser
-from networks.distill_model import DistilDIREOnlyEPS
+from networks.distill_model import DistilDIREOnlyEPS, DistilDIRE
 from guided_diffusion.guided_diffusion.script_util import (
     create_model_and_diffusion,
     model_and_diffusion_defaults,
@@ -39,6 +42,10 @@ def download_file(input_path):
         # Ensure the filename does not contain query parameters if present in the URL
         # Splits the filename by '?' and get the first part
         filename = filename.split('?')[0]
+
+        # put jpg extension if not present
+        if '.' not in filename:
+            filename += ".jpg"
 
         # Define the local path where the file will be saved
         local_filepath = os.path.join('.', filename)
@@ -90,8 +97,9 @@ class CustomModel:
         self.net = net
         self.num_frames = num_frames
         
-        self.model =  DistilDIREOnlyEPS('cuda').to('cuda')
-        self.trans = transforms.Compose((transforms.Resize(512), transforms.CenterCrop((512, 512)),))
+        # self.model =  DistilDIREOnlyEPS('cuda').to('cuda')
+        self.model = DistilDIRE('cuda').to('cuda')
+        self.trans = transforms.Compose((transforms.Resize(256, antialias=True), transforms.CenterCrop((256, 256)),))
         
         self._load_state_dict(ckpt)
         
@@ -100,6 +108,7 @@ class CustomModel:
         adm_model, diffusion = create_model_and_diffusion(**dict_parse(args, model_and_diffusion_defaults().keys()))
         adm_model.load_state_dict(torch.load(args['model_path'], map_location="cpu"))
         adm_model.cuda()
+        adm_model.convert_to_fp16()
         adm_model.eval()
         self.adm_model = adm_model
         self.diffusion = diffusion
@@ -117,14 +126,21 @@ class CustomModel:
         print("The model is successfully loaded")
 
 
-    def _forward_dire_img(self, img_path, save_dire=True, thr=0.4):
+    def _forward_dire_img(self, img_path, save_dire=True, thr=0.5):
         img = Image.open(img_path).convert("RGB")
-        img_tens = TF.to_tensor(img).unsqueeze(0)
-        img = self.trans(img_tens).cuda() * 2 - 1
-        
+        img = TF.to_tensor(img)
+        img = self.trans(img).cuda() * 2 - 1
+        img = img.unsqueeze(0)
         with torch.no_grad():
             eps = dire_get_first_step_noise(img, self.adm_model, self.diffusion, self.args, "cuda")
-            prob = self.model(eps).sigmoid()
+            # eps = eps.detach().cpu()
+            # ext = img_path.split('.')[-1]
+            # eps_path = img_path.replace(f".{ext}", ".pt")
+            # torch.save(eps, eps_path)
+
+            # eps = torch.load(eps_path, weights_only=True, mmap=True).cuda()
+            # os.remove(eps_path)
+            prob = self.model(img, eps)['logit'].sigmoid()
             
         return {"df_probability": prob.median().item(), "prediction": real_or_fake_thres(prob.median().item(), thr)}
 
