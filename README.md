@@ -107,6 +107,11 @@ docker run --gpus=all --name=truemedia_gpu_all_distildire -v "$WORKDIR:/workspac
 * Minimum requirements: 1 GPU, 10GB VRAM
 
 
+## Licenses
+This work is licensed under the Creative Commons Attribution-NonCommercial 4.0 license.
+You are free to read, share, and modify this code as long as you keep the original author attribution and non-commercial license.
+Please see [this site](https://creativecommons.org/licenses/by-nc/4.0/) for detailed legal terms.
+
 ## Acknowledgments
 Our code is developed based on [DIRE](https://github.com/ZhendongWang6/DIRE), [guided-diffusion](https://github.com/openai/guided-diffusion) and [CNNDetection](https://github.com/peterwang512/CNNDetection). Thanks for their sharing codes and models.
 
