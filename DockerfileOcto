@@ -1,0 +1,31 @@
+FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04 
+
+RUN apt-get update && apt-get install -y \
+    python3-pip \
+    libgl1-mesa-glx \
+    libglib2.0-0 python3-dev libglib2.0-0 libgl1-mesa-glx \
+    cmake tmux git curl wget gcc build-essential \
+    && rm -rf /var/lib/apt/lists/* 
+
+WORKDIR /app
+RUN pip install torch==2.3.1 torchvision==0.18.1 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cu121
+ADD requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+ADD guided_diffusion/ /app/guided_diffusion
+ADD dataset/ /app/dataset
+ADD networks/ /app/networks
+ADD utils/ /app/utils
+ADD models /app/models
+ADD server.py /app/server.py
+
+ADD custommodel.py /app/custommodel.py
+
+
+ARG SERVING_PORT=8000
+ENV SERVING_PORT=$SERVING_PORT
+EXPOSE $SERVING_PORT
+
+CMD python3 -m server
+
+
